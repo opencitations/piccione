@@ -18,6 +18,7 @@ export default defineConfig({
 				src: './public/piccione.png',
 				alt: 'Piccione logo',
 			},
+			favicon: '/favicon.ico',
 			description: 'A Python toolkit for uploading and downloading data to external repositories and cloud services.',
 
 			social: [
