@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: How to install and use {{PACKAGE_NAME}}
+description: How to install and use piccione
 ---
 
 ## Installation
@@ -8,19 +8,19 @@ description: How to install and use {{PACKAGE_NAME}}
 Install the package using pip:
 
 ```bash
-pip install {{PACKAGE_NAME}}
+pip install piccione
 ```
 
 Or with UV:
 
 ```bash
-uv add {{PACKAGE_NAME}}
+uv add piccione
 ```
 
 ## Basic usage
 
 ```python
-from {{PACKAGE_UNDERSCORE}} import example_function
+from piccione import example_function
 
 result = example_function()
 print(result)

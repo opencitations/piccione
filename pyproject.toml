@@ -1,8 +1,8 @@
 [project]
-name = "package-name"
+name = "piccione"
 version = "0.1.0"
-description = "Package description"
-authors = [{name = "Author Name", email = "author@example.com"}]
+description = "A Python toolkit for uploading and downloading data to external repositories and cloud services."
+authors = [{name = "Arcangelo Massari", email = "arcangelo.massari@unibo.it"}]
 readme = "README.md"
 license = {text = "ISC"}
 requires-python = ">=3.10"
@@ -20,9 +20,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/username/package-name"
-Documentation = "https://username.github.io/package-name/"
-Repository = "https://github.com/username/package-name"
+Homepage = "https://github.com/arcangelo7/piccione"
+Documentation = "https://arcangelo7.github.io/piccione/"
+Repository = "https://github.com/arcangelo7/piccione"
 
 [dependency-groups]
 dev = [

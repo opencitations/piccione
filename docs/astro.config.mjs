@@ -8,16 +8,16 @@ export default defineConfig({
 			[rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'noreferrer'] }]
 		],
 	},
-	site: 'https://{{GITHUB_USERNAME}}.github.io',
-	base: '/{{PACKAGE_NAME}}',
+	site: 'https://arcangelo7.github.io',
+	base: '/piccione',
 
 	integrations: [
 		starlight({
-			title: '{{PACKAGE_TITLE}}',
-			description: '{{DESCRIPTION}}',
+			title: 'Piccione',
+			description: 'A Python toolkit for uploading and downloading data to external repositories and cloud services.',
 
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/{{GITHUB_USERNAME}}/{{PACKAGE_NAME}}' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/arcangelo7/piccione' },
 			],
 
 			sidebar: [

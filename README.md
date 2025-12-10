@@ -1,51 +1,58 @@
-# Python package template
+# Piccione
 
-A template for creating Python packages with UV dependency management, pytest testing, semantic-release versioning, and optional Astro Starlight documentation.
+[![Run tests](https://github.com/arcangelo7/piccione/actions/workflows/tests.yml/badge.svg)](https://github.com/arcangelo7/piccione/actions/workflows/tests.yml)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
-## Getting started
+A Python toolkit for uploading and downloading data to external repositories and cloud services..
 
-1. Click the **Use this template** button on GitHub:
-
-   !["Use this template" button](.github/images/use_this_template.png)
-
-2. Select **Create a new repository**, fill in the repository name, and click **Create repository**:
-
-   !["Create a new repository" page](.github/images/create_new_repo.png)
-
-3. Clone your new repository and continue with the setup below.
-
-## Prerequisites
-
-- **UV**: Install from https://docs.astral.sh/uv/getting-started/installation/
-- **Python 3.10+**: UV can install Python for you with `uv python install`
-- **Node.js and npm** (only for documentation site): Install from https://nodejs.org/en/download
-
-## Setup
-
-Run the setup script:
+## Installation
 
 ```bash
-python setup.py
+pip install piccione
 ```
 
-The script will ask for:
-- Package name
-- Description
-- Author name and email
-- GitHub username/organization
-- Whether to include a Starlight documentation site
+## Usage
 
-It will automatically configure all files and remove itself when done.
+```python
+from piccione import example_function
 
-## After running the script
+result = example_function()
+print(result)
+```
 
-Configure your GitHub repository:
+## Documentation
 
-1. **Add PyPI token** (for publishing releases)
-   - Create a token at https://pypi.org/manage/account/token/
-   - Go to Settings > Secrets and variables > Actions
-   - Add a new secret named `PYPI_TOKEN`
+Full documentation is available at: https://arcangelo7.github.io/piccione/
 
-2. **Enable GitHub Pages** (only if you included documentation)
-   - Go to Settings > Pages
-   - Set Source to "GitHub Actions"
+## Development
+
+This project uses [UV](https://docs.astral.sh/uv/) for dependency management.
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/arcangelo7/piccione.git
+cd piccione
+
+# Install dependencies
+uv sync --all-extras --dev
+```
+
+### Running tests
+
+```bash
+uv run pytest tests/
+```
+
+### Building documentation locally
+
+```bash
+cd docs
+npm install
+npm run dev
+```
+
+## License
+
+This project is licensed under the ISC License - see the [LICENSE.md](LICENSE.md) file for details.
