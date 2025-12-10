@@ -14,6 +14,10 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Piccione',
+			logo: {
+				src: './public/piccione.png',
+				alt: 'Piccione logo',
+			},
 			description: 'A Python toolkit for uploading and downloading data to external repositories and cloud services.',
 
 			social: [

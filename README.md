@@ -1,5 +1,9 @@
 # Piccione
 
+<p align="center">
+  <img src="docs/public/piccione.png" alt="Piccione logo" width="200">
+</p>
+
 Pronounced *Py-ccione*.
 
 [![Run tests](https://github.com/opencitations/piccione/actions/workflows/tests.yml/badge.svg)](https://github.com/opencitations/piccione/actions/workflows/tests.yml)
