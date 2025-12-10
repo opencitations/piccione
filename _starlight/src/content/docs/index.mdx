@@ -1,0 +1,34 @@
+---
+title: {{PACKAGE_TITLE}}
+description: {{DESCRIPTION}}
+template: splash
+hero:
+  title: {{PACKAGE_TITLE}}
+  tagline: {{DESCRIPTION}}
+  actions:
+    - text: Get started
+      link: /{{PACKAGE_NAME}}/getting_started/
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/{{GITHUB_USERNAME}}/{{PACKAGE_NAME}}
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid>
+  <Card title="Feature 1" icon="rocket">
+    Description of the first feature.
+  </Card>
+  <Card title="Feature 2" icon="puzzle">
+    Description of the second feature.
+  </Card>
+</CardGrid>
+
+## Installation
+
+```bash
+pip install {{PACKAGE_NAME}}
+```
