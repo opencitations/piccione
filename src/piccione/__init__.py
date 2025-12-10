@@ -1,12 +1,3 @@
-"""A Python toolkit for uploading and downloading data to external repositories and cloud services.."""
+"""PICCIONE - Python Interface for Cloud Content Ingest and Outbound Network Export."""
 
 __version__ = "0.1.0"
-
-
-def example_function() -> str:
-    """Return a greeting message.
-
-    Returns:
-        A greeting string.
-    """
-    return "Hello from piccione!"

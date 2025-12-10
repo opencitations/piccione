@@ -17,12 +17,19 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dependencies = []
+dependencies = [
+    "internetarchive>=5.7.1",
+    "pyyaml>=6.0.3",
+    "redis>=7.1.0",
+    "requests>=2.32.5",
+    "sparqlite>=1.0.0",
+    "tqdm>=4.67.1",
+]
 
 [project.urls]
-Homepage = "https://github.com/arcangelo7/piccione"
-Documentation = "https://arcangelo7.github.io/piccione/"
-Repository = "https://github.com/arcangelo7/piccione"
+Homepage = "https://github.com/opencitations/piccione"
+Documentation = "https://opencitations.github.io/piccione/"
+Repository = "https://github.com/opencitations/piccione"
 
 [dependency-groups]
 dev = [
