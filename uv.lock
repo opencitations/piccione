@@ -451,7 +451,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "internetarchive", specifier = ">=5.7.1" },
     { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "redis", specifier = ">=7.1.0" },
+    { name = "redis", specifier = ">=4.5.5" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "rich", specifier = ">=14.2.0" },
     { name = "sparqlite", specifier = ">=1.0.0" },
