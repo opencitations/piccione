@@ -36,6 +36,7 @@ Repository = "https://github.com/opencitations/piccione"
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+    "pytest-cov>=7.0.0",
     "virtuoso-utilities>=1.8.3",
 ]
 

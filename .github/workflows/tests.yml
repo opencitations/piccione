@@ -27,4 +27,30 @@ jobs:
 
     - run: uv sync --locked --all-extras --dev
 
-    - run: uv run pytest tests/
+    - name: Run tests with coverage
+      if: matrix.python-version == '3.13'
+      run: uv run pytest tests/ --cov=piccione --cov-report=html --cov-report=xml
+
+    - name: Run tests without coverage
+      if: matrix.python-version != '3.13'
+      run: uv run pytest tests/
+
+    - name: Generate coverage badge
+      if: matrix.python-version == '3.13'
+      run: |
+        uv run pip install genbadge[coverage]
+        uv run genbadge coverage -i coverage.xml -o coverage-badge.svg
+
+    - name: Upload coverage HTML report
+      if: matrix.python-version == '3.13'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+    - name: Upload coverage badge
+      if: matrix.python-version == '3.13'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-badge
+        path: coverage-badge.svg
