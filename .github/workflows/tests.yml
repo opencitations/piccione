@@ -23,8 +23,6 @@ jobs:
         enable-cache: true
         python-version: ${{ matrix.python-version }}
 
-    - run: uv python install
-
     - run: uv sync --locked --all-extras --dev
 
     - name: Run tests with coverage
@@ -37,9 +35,7 @@ jobs:
 
     - name: Generate coverage badge
       if: matrix.python-version == '3.13'
-      run: |
-        uv run pip install genbadge[coverage]
-        uv run genbadge coverage -i coverage.xml -o coverage-badge.svg
+      run: uv run genbadge coverage -i coverage.xml -o coverage-badge.svg
 
     - name: Upload coverage HTML report
       if: matrix.python-version == '3.13'
