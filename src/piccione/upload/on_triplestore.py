@@ -22,28 +22,28 @@ def upload_sparql_updates(
     folder,
     failed_file="failed_queries.txt",
     stop_file=".stop_upload",
-    cache_manager=None,
+    redis_host=None,
+    redis_port=None,
+    redis_db=None,
     description="Processing files",
     show_progress=True,
 ):
-    """
-    Upload SPARQL updates to the triplestore.
-
-    Args:
-        endpoint: URL of the SPARQL endpoint
-        folder: Folder containing SPARQL files to process
-        failed_file: File to record failed queries
-        stop_file: File to stop the process
-        cache_manager: CacheManager instance. If None, a new one will be created.
-    """
     if not os.path.exists(folder):
         return
 
-    if cache_manager is None:
-        cache_manager = CacheManager()
+    cache_manager = None
+    if redis_host is not None:
+        cache_manager = CacheManager(
+            redis_host=redis_host,
+            redis_port=redis_port,
+            redis_db=redis_db,
+        )
 
     all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]
-    files_to_process = [f for f in all_files if f not in cache_manager]
+    if cache_manager is not None:
+        files_to_process = [f for f in all_files if f not in cache_manager]
+    else:
+        files_to_process = all_files
 
     if not files_to_process:
         return
@@ -61,12 +61,14 @@ def upload_sparql_updates(
                 query = f.read().strip()
 
             if not query:
-                cache_manager.add(file)
+                if cache_manager is not None:
+                    cache_manager.add(file)
                 continue
 
             try:
                 client.update(query)
-                cache_manager.add(file)
+                if cache_manager is not None:
+                    cache_manager.add(file)
             except Exception as e:
                 print(f"Failed to execute {file}: {e}")
                 save_failed_query_file(file, failed_file)
@@ -91,6 +93,9 @@ def main():  # pragma: no cover
     parser.add_argument(
         "--stop_file", type=str, default=".stop_upload", help="Path to stop file"
     )
+    parser.add_argument("--redis_host", type=str, help="Redis host for caching")
+    parser.add_argument("--redis_port", type=int, help="Redis port")
+    parser.add_argument("--redis_db", type=int, help="Redis database number")
 
     args = parser.parse_args()
 
@@ -101,6 +106,9 @@ def main():  # pragma: no cover
         args.folder,
         args.failed_file,
         args.stop_file,
+        redis_host=args.redis_host,
+        redis_port=args.redis_port,
+        redis_db=args.redis_db,
     )
 
 

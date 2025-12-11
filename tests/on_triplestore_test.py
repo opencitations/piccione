@@ -71,15 +71,17 @@ class TestOnTriplestore:
         with open(stop_file, "w") as f:
             f.write("")
 
-        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         upload_sparql_updates(
             SPARQL_ENDPOINT,
             sparql_dir,
             failed_file=failed_file,
             stop_file=stop_file,
-            cache_manager=cache_manager,
+            redis_host="localhost",
+            redis_port=REDIS_PORT,
+            redis_db=REDIS_DB,
         )
 
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         assert cache_manager.get_all() == set()
 
     def test_upload_with_failures(self, temp_dir, clean_redis, clean_virtuoso):
@@ -101,14 +103,16 @@ class TestOnTriplestore:
         with open(os.path.join(sparql_dir, "invalid.sparql"), "w") as f:
             f.write(invalid_query)
 
-        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         upload_sparql_updates(
             SPARQL_ENDPOINT,
             sparql_dir,
             failed_file=failed_file,
-            cache_manager=cache_manager,
+            redis_host="localhost",
+            redis_port=REDIS_PORT,
+            redis_db=REDIS_DB,
         )
 
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         assert "valid.sparql" in cache_manager
         assert "invalid.sparql" not in cache_manager
 
@@ -131,12 +135,13 @@ class TestOnTriplestore:
         with open(os.path.join(sparql_dir, "insert.sparql"), "w") as f:
             f.write(query)
 
-        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         upload_sparql_updates(
             SPARQL_ENDPOINT,
             sparql_dir,
             failed_file=failed_file,
-            cache_manager=cache_manager,
+            redis_host="localhost",
+            redis_port=REDIS_PORT,
+            redis_db=REDIS_DB,
             show_progress=False,
         )
 
@@ -154,24 +159,28 @@ class TestOnTriplestore:
         assert bindings[0]["o"]["value"] == "test value"
 
     def test_nonexistent_folder_returns_early(self, temp_dir, clean_redis):
-        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         upload_sparql_updates(
             SPARQL_ENDPOINT,
             os.path.join(temp_dir, "nonexistent"),
-            cache_manager=cache_manager,
+            redis_host="localhost",
+            redis_port=REDIS_PORT,
+            redis_db=REDIS_DB,
         )
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         assert cache_manager.get_all() == set()
 
     def test_empty_folder_returns_early(self, temp_dir, clean_redis, clean_virtuoso):
         sparql_dir = os.path.join(temp_dir, "empty_sparql")
         os.makedirs(sparql_dir)
 
-        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         upload_sparql_updates(
             SPARQL_ENDPOINT,
             sparql_dir,
-            cache_manager=cache_manager,
+            redis_host="localhost",
+            redis_port=REDIS_PORT,
+            redis_db=REDIS_DB,
         )
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         assert cache_manager.get_all() == set()
 
     def test_empty_query_file_is_skipped(self, temp_dir, clean_redis, clean_virtuoso):
@@ -181,13 +190,15 @@ class TestOnTriplestore:
         with open(os.path.join(sparql_dir, "empty.sparql"), "w") as f:
             f.write("   \n  ")
 
-        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         upload_sparql_updates(
             SPARQL_ENDPOINT,
             sparql_dir,
-            cache_manager=cache_manager,
+            redis_host="localhost",
+            redis_port=REDIS_PORT,
+            redis_db=REDIS_DB,
             show_progress=False,
         )
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
         assert "empty.sparql" in cache_manager
 
     def test_remove_stop_file_when_exists(self, temp_dir):
@@ -204,7 +215,7 @@ class TestOnTriplestore:
         assert not os.path.exists(stop_file)
         remove_stop_file(stop_file)
 
-    def test_creates_cache_manager_when_none(self, temp_dir, clean_virtuoso):
+    def test_creates_cache_manager_when_redis_params_provided(self, temp_dir, clean_virtuoso):
         sparql_dir = os.path.join(temp_dir, "sparql_files")
         os.makedirs(sparql_dir)
 
@@ -225,8 +236,43 @@ class TestOnTriplestore:
             upload_sparql_updates(
                 SPARQL_ENDPOINT,
                 sparql_dir,
-                cache_manager=None,
+                redis_host="localhost",
+                redis_port=6379,
+                redis_db=0,
                 show_progress=False,
             )
 
         mock_cache.add.assert_called_once_with("test.sparql")
+
+    def test_upload_without_cache(self, temp_dir, clean_virtuoso):
+        sparql_dir = os.path.join(temp_dir, "sparql_files")
+        os.makedirs(sparql_dir)
+
+        query = """
+        INSERT DATA {
+            GRAPH <http://test.graph> {
+                <http://test.subject> <http://test.predicate> "no cache value" .
+            }
+        }
+        """
+        with open(os.path.join(sparql_dir, "test.sparql"), "w") as f:
+            f.write(query)
+
+        upload_sparql_updates(
+            SPARQL_ENDPOINT,
+            sparql_dir,
+            show_progress=False,
+        )
+
+        with SPARQLClient(SPARQL_ENDPOINT) as client:
+            result = client.query("""
+                SELECT ?o WHERE {
+                    GRAPH <http://test.graph> {
+                        <http://test.subject> <http://test.predicate> ?o .
+                    }
+                }
+            """)
+
+        bindings = result["results"]["bindings"]
+        assert len(bindings) == 1
+        assert bindings[0]["o"]["value"] == "no cache value"
