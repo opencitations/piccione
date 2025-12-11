@@ -1,0 +1,13 @@
+# SharePoint download configuration
+# Obtain FedAuth and rtFa cookies from browser developer tools:
+# 1. Log in to SharePoint
+# 2. Open developer tools (F12)
+# 3. Go to Application > Cookies
+# 4. Copy the FedAuth and rtFa cookie values
+
+site_url: https://example.sharepoint.com/sites/MySite
+fedauth: <FEDAUTH_COOKIE_VALUE>
+rtfa: <RTFA_COOKIE_VALUE>
+folders:
+  - /Shared Documents/Project A
+  - /Shared Documents/Project B/Data

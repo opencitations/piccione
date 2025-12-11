@@ -1,0 +1,18 @@
+# Internet Archive upload configuration
+# Obtain your API keys from: https://archive.org/account/s3.php
+
+identifier: my-dataset-2025
+access_key: <YOUR_ACCESS_KEY>
+secret_key: <YOUR_SECRET_KEY>
+file_paths:
+  - /path/to/dataset.tar.gz
+  - /path/to/documentation.pdf
+metadata:
+  title: My research dataset
+  description: Dataset containing research data for project X
+  creator: Author Name
+  mediatype: data
+  collection: opensource
+  subject: research;data;science
+  date: "2025"
+  language: eng

@@ -1,0 +1,8 @@
+# Figshare upload configuration
+# Obtain your API token from: Account Settings > Applications > Personal tokens
+
+TOKEN: <YOUR_FIGSHARE_TOKEN>
+ARTICLE_ID: 12345678
+files_to_upload:
+  - /path/to/dataset.zip
+  - /path/to/supplementary_materials.pdf

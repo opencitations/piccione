@@ -26,10 +26,21 @@ export default defineConfig({
 			],
 
 			sidebar: [
+				{ label: 'Getting started', slug: 'getting_started' },
 				{
-					label: 'Guides',
+					label: 'Upload',
 					items: [
-						{ label: 'Getting started', slug: 'getting_started' },
+						{ label: 'Figshare', slug: 'upload/figshare' },
+						{ label: 'Zenodo', slug: 'upload/zenodo' },
+						{ label: 'Internet Archive', slug: 'upload/internet_archive' },
+						{ label: 'Triplestore', slug: 'upload/triplestore' },
+					],
+				},
+				{
+					label: 'Download',
+					items: [
+						{ label: 'Figshare', slug: 'download/figshare' },
+						{ label: 'SharePoint', slug: 'download/sharepoint' },
 					],
 				},
 			],

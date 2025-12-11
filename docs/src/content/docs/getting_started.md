@@ -11,23 +11,29 @@ Install the package using pip:
 pip install piccione
 ```
 
-Or with UV:
+Or with uv:
 
 ```bash
 uv add piccione
 ```
 
-## Basic usage
+## Modules overview
 
-```python
-from piccione import example_function
+| Module | Description |
+|--------|-------------|
+| [Figshare upload](/piccione/upload/figshare/) | Upload files to Figshare articles |
+| [Zenodo upload](/piccione/upload/zenodo/) | Upload files to Zenodo depositions |
+| [Internet Archive upload](/piccione/upload/internet_archive/) | Upload files to Internet Archive items |
+| [Triplestore upload](/piccione/upload/triplestore/) | Execute SPARQL updates on triplestore endpoints |
+| [Figshare download](/piccione/download/figshare/) | Download files from Figshare articles |
+| [SharePoint download](/piccione/download/sharepoint/) | Download files from SharePoint sites |
 
-result = example_function()
-print(result)
-```
+## Configuration
+
+Most modules use YAML configuration files. Example configurations are available in the [examples folder](https://github.com/arcangelo7/piccione/tree/main/examples).
 
 ## Next steps
 
-- Explore the API reference
-- Check out the examples
-- Read the contributing guide
+- Check out the [upload modules](/piccione/upload/figshare/) for uploading data
+- Check out the [download modules](/piccione/download/figshare/) for downloading data
+- Browse the [example configurations](https://github.com/arcangelo7/piccione/tree/main/examples)

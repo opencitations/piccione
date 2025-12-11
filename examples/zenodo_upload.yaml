@@ -1,0 +1,10 @@
+# Zenodo upload configuration
+# Obtain your access token from: Account Settings > Applications > Personal access tokens
+# Use https://sandbox.zenodo.org for testing
+
+zenodo_url: https://zenodo.org
+access_token: <YOUR_ZENODO_TOKEN>
+project_id: 12345678
+files:
+  - /path/to/dataset.zip
+  - /path/to/readme.txt
