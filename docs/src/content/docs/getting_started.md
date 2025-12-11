@@ -30,10 +30,10 @@ uv add piccione
 
 ## Configuration
 
-Most modules use YAML configuration files. Example configurations are available in the [examples folder](https://github.com/arcangelo7/piccione/tree/main/examples).
+Most modules use YAML configuration files. Example configurations are available in the [examples folder](https://github.com/opencitations/piccione/tree/main/examples).
 
 ## Next steps
 
 - Check out the [upload modules](/piccione/upload/figshare/) for uploading data
 - Check out the [download modules](/piccione/download/figshare/) for downloading data
-- Browse the [example configurations](https://github.com/arcangelo7/piccione/tree/main/examples)
+- Browse the [example configurations](https://github.com/opencitations/piccione/tree/main/examples)

@@ -29,7 +29,7 @@ files_to_upload:
   - /path/to/supplementary_materials.pdf
 ```
 
-See [examples/figshare_upload.yaml](https://github.com/arcangelo7/piccione/blob/main/examples/figshare_upload.yaml) for a complete example.
+See [examples/figshare_upload.yaml](https://github.com/opencitations/piccione/blob/main/examples/figshare_upload.yaml) for a complete example.
 
 ## Usage
 

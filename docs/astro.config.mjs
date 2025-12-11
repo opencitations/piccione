@@ -8,7 +8,7 @@ export default defineConfig({
 			[rehypeExternalLinks, { target: '_blank', rel: ['noopener', 'noreferrer'] }]
 		],
 	},
-	site: 'https://arcangelo7.github.io',
+	site: 'https://opencitations.github.io',
 	base: '/piccione',
 
 	integrations: [
@@ -22,7 +22,7 @@ export default defineConfig({
 			description: 'A Python toolkit for uploading and downloading data to external repositories and cloud services.',
 
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/arcangelo7/piccione' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/opencitations/piccione' },
 			],
 
 			sidebar: [

@@ -37,7 +37,7 @@ folders:
   - /Shared Documents/Project B/Data
 ```
 
-See [examples/sharepoint_download.yaml](https://github.com/arcangelo7/piccione/blob/main/examples/sharepoint_download.yaml) for a complete example.
+See [examples/sharepoint_download.yaml](https://github.com/opencitations/piccione/blob/main/examples/sharepoint_download.yaml) for a complete example.
 
 ## Usage
 

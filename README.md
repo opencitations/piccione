@@ -60,14 +60,14 @@ python -m piccione.download.from_sharepoint config.yaml <output_dir>
 
 ## Documentation
 
-Full documentation: https://arcangelo7.github.io/piccione/
+Full documentation: https://opencitations.github.io/piccione/
 
 Configuration examples: [examples/](examples/)
 
 ## Development
 
 ```bash
-git clone https://github.com/arcangelo7/piccione.git
+git clone https://github.com/opencitations/piccione.git
 cd piccione
 uv sync --all-extras --dev
 uv run pytest tests/

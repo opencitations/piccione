@@ -51,7 +51,7 @@ metadata:
   subject: research;data;science
 ```
 
-See [examples/internet_archive_upload.yaml](https://github.com/arcangelo7/piccione/blob/main/examples/internet_archive_upload.yaml) for a complete example.
+See [examples/internet_archive_upload.yaml](https://github.com/opencitations/piccione/blob/main/examples/internet_archive_upload.yaml) for a complete example.
 
 ## Usage
 

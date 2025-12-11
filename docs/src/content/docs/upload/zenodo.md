@@ -31,7 +31,7 @@ files:
   - /path/to/readme.txt
 ```
 
-See [examples/zenodo_upload.yaml](https://github.com/arcangelo7/piccione/blob/main/examples/zenodo_upload.yaml) for a complete example.
+See [examples/zenodo_upload.yaml](https://github.com/opencitations/piccione/blob/main/examples/zenodo_upload.yaml) for a complete example.
 
 ## Usage
 
