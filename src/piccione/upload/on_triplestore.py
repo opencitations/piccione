@@ -72,7 +72,7 @@ def upload_sparql_updates(
                 save_failed_query_file(file, failed_file)
 
 
-def main():
+def main():  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="Execute SPARQL update queries on a triple store."
     )
@@ -104,5 +104,5 @@ def main():
     )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

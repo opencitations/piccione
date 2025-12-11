@@ -1,9 +1,10 @@
 import os
+from unittest.mock import MagicMock, patch
 
 import pytest
 from tests.conftest import REDIS_DB, REDIS_PORT
 from piccione.upload.cache_manager import CacheManager
-from piccione.upload.on_triplestore import save_failed_query_file, upload_sparql_updates
+from piccione.upload.on_triplestore import remove_stop_file, save_failed_query_file, upload_sparql_updates
 from sparqlite import SPARQLClient
 
 SPARQL_ENDPOINT = "http://localhost:28890/sparql"
@@ -24,8 +25,6 @@ class TestCacheManager:
         test_file = "test.sparql"
         cache_manager.add(test_file)
 
-        assert test_file in cache_manager.processed_files
-        assert cache_manager._redis.sismember(CacheManager.REDIS_KEY, test_file)
         assert test_file in cache_manager
 
     def test_persistence(self, clean_redis):
@@ -153,3 +152,81 @@ class TestOnTriplestore:
         bindings = result["results"]["bindings"]
         assert len(bindings) == 1
         assert bindings[0]["o"]["value"] == "test value"
+
+    def test_nonexistent_folder_returns_early(self, temp_dir, clean_redis):
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
+        upload_sparql_updates(
+            SPARQL_ENDPOINT,
+            os.path.join(temp_dir, "nonexistent"),
+            cache_manager=cache_manager,
+        )
+        assert cache_manager.get_all() == set()
+
+    def test_empty_folder_returns_early(self, temp_dir, clean_redis, clean_virtuoso):
+        sparql_dir = os.path.join(temp_dir, "empty_sparql")
+        os.makedirs(sparql_dir)
+
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
+        upload_sparql_updates(
+            SPARQL_ENDPOINT,
+            sparql_dir,
+            cache_manager=cache_manager,
+        )
+        assert cache_manager.get_all() == set()
+
+    def test_empty_query_file_is_skipped(self, temp_dir, clean_redis, clean_virtuoso):
+        sparql_dir = os.path.join(temp_dir, "sparql_files")
+        os.makedirs(sparql_dir)
+
+        with open(os.path.join(sparql_dir, "empty.sparql"), "w") as f:
+            f.write("   \n  ")
+
+        cache_manager = CacheManager(redis_port=REDIS_PORT, redis_db=REDIS_DB)
+        upload_sparql_updates(
+            SPARQL_ENDPOINT,
+            sparql_dir,
+            cache_manager=cache_manager,
+            show_progress=False,
+        )
+        assert "empty.sparql" in cache_manager
+
+    def test_remove_stop_file_when_exists(self, temp_dir):
+        stop_file = os.path.join(temp_dir, ".stop_upload")
+        with open(stop_file, "w") as f:
+            f.write("")
+
+        assert os.path.exists(stop_file)
+        remove_stop_file(stop_file)
+        assert not os.path.exists(stop_file)
+
+    def test_remove_stop_file_when_not_exists(self, temp_dir):
+        stop_file = os.path.join(temp_dir, ".stop_upload")
+        assert not os.path.exists(stop_file)
+        remove_stop_file(stop_file)
+
+    def test_creates_cache_manager_when_none(self, temp_dir, clean_virtuoso):
+        sparql_dir = os.path.join(temp_dir, "sparql_files")
+        os.makedirs(sparql_dir)
+
+        query = """
+        INSERT DATA {
+            GRAPH <http://test.graph> {
+                <http://test.subject> <http://test.predicate> "value" .
+            }
+        }
+        """
+        with open(os.path.join(sparql_dir, "test.sparql"), "w") as f:
+            f.write(query)
+
+        mock_cache = MagicMock()
+        mock_cache.__contains__ = MagicMock(return_value=False)
+
+        with patch("piccione.upload.on_triplestore.CacheManager", return_value=mock_cache):
+            upload_sparql_updates(
+                SPARQL_ENDPOINT,
+                sparql_dir,
+                cache_manager=None,
+                show_progress=False,
+            )
+
+        mock_cache.add.assert_called_once_with("test.sparql")

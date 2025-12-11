@@ -61,7 +61,6 @@ class TestUploadFileWithRetry:
                 )
 
         assert result == mock_response
-        assert mock_put.call_count == 1
         mock_put.assert_called_once()
         call_kwargs = mock_put.call_args[1]
         assert call_kwargs["headers"] == {"Authorization": "Bearer token123"}
