@@ -5,11 +5,11 @@
     "@semantic-release/release-notes-generator",
     "@semantic-release/changelog",
     ["@semantic-release/exec", {
-      "prepareCmd": "uv version ${nextRelease.version}"
+      "prepareCmd": "uv version ${nextRelease.version} && uv lock"
     }],
     "@semantic-release/github",
     ["@semantic-release/git", {
-      "assets": ["CHANGELOG.md", "pyproject.toml"],
+      "assets": ["CHANGELOG.md", "pyproject.toml", "uv.lock"],
       "message": "chore(release): ${nextRelease.version}\n\n${nextRelease.notes}"
     }]
   ]
