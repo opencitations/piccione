@@ -32,7 +32,7 @@ def upload_files(config_path):
         print("Upload failed.")
 
 
-def main():
+def main():  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="Upload files to the Internet Archive."
     )
@@ -44,5 +44,5 @@ def main():
     upload_files(args.config_path)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

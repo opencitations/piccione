@@ -109,7 +109,7 @@ def main(config_path):
     print("\nAll files uploaded successfully to Figshare! 🎉")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     parser = argparse.ArgumentParser(description="Upload files to Figshare.")
     parser.add_argument("config", help="Path to the YAML configuration file.")
     args = parser.parse_args()

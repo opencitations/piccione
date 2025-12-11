@@ -71,7 +71,7 @@ def download_file(download_url, output_path, expected_size, expected_md5=None):
         print(f"  MD5 checksum verified: {actual_md5}")
 
 
-def main():
+def main():  # pragma: no cover
     parser = argparse.ArgumentParser(
         description="Download files from a Figshare article"
     )
@@ -122,5 +122,5 @@ def main():
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())
