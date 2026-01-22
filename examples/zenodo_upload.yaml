@@ -1,10 +1,29 @@
 # Zenodo upload configuration
 # Obtain your access token from: Account Settings > Applications > Personal access tokens
-# Use https://sandbox.zenodo.org for testing
+# Use https://sandbox.zenodo.org/api for testing
 
-zenodo_url: https://zenodo.org
+zenodo_url: https://zenodo.org/api
 access_token: <YOUR_ZENODO_TOKEN>
-project_id: 12345678
+user_agent: piccione/2.0.0
+
+# Optional: omit to create new deposition, provide to create new version
+# project_id: 12345678
+
+title: My Dataset
+upload_type: dataset
+creators:
+  - name: Doe, John
+    affiliation: University
+    orcid: 0000-0000-0000-0000
+keywords:
+  - data
+  - research
+license: cc-by-4.0
+description: |
+  Dataset description here.
+
+  Multiple paragraphs supported.
+
 files:
   - /path/to/dataset.zip
   - /path/to/readme.txt
