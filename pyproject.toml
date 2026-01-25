@@ -1,6 +1,6 @@
 [project]
 name = "piccione"
-version = "2.0.0"
+version = "2.1.0"
 description = "A Python toolkit for uploading and downloading data to external repositories and cloud services."
 authors = [{name = "Arcangelo Massari", email = "arcangelo.massari@unibo.it"}]
 readme = "README.md"

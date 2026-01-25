@@ -1,3 +1,11 @@
+# [2.1.0](https://github.com/opencitations/piccione/compare/v2.0.0...v2.1.0) (2026-01-25)
+
+
+### Features
+
+* **upload:** add infinite retry with exponential backoff for figshare and zenodo ([57649b3](https://github.com/opencitations/piccione/commit/57649b39a855ebb32128d8fc2da50bf812714d55))
+* **zenodo:** add metadata management, new deposition creation, and auto-publish ([8a8be0c](https://github.com/opencitations/piccione/commit/8a8be0c7c6966d5ddd73ed43f0b055686673fded))
+
 # [2.0.0](https://github.com/opencitations/piccione/compare/v1.0.0...v2.0.0) (2025-12-11)
 
 
