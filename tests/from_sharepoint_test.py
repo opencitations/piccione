@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from piccione.download.from_sharepoint import (
+    collect_all_remote_paths,
     collect_files_from_structure,
     download_all_files,
     download_file,
@@ -15,6 +16,8 @@ from piccione.download.from_sharepoint import (
     get_site_relative_url,
     load_config,
     process_folder,
+    remove_orphans,
+    should_download,
     sort_structure,
 )
 
@@ -159,7 +162,7 @@ class TestGetFolderStructure:
         responses_with_system[f"{test_path}/Files"] = {"d": {"results": []}}
         responses_with_system[f"{test_path}/valid/Folders"] = {"d": {"results": []}}
         responses_with_system[f"{test_path}/valid/Files"] = {
-            "d": {"results": [{"Name": "test.txt"}]}
+            "d": {"results": [{"Name": "test.txt", "Length": "100", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{X1}\""}]}
         }
 
         mock_client = create_mock_client(responses_with_system)
@@ -168,7 +171,7 @@ class TestGetFolderStructure:
         assert "_private" not in result
         assert "Forms" not in result
         assert "valid" in result
-        assert result["valid"]["_files"] == ["test.txt"]
+        assert result["valid"]["_files"] == {"test.txt": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{X1}\""}}
 
     def test_empty_folder_has_no_files_key(self, sharepoint_fixture):
         site_url = sharepoint_fixture["site_url"]
@@ -248,8 +251,13 @@ class TestCollectFilesFromStructure:
         structure = {
             "Sala1": {
                 "S1-01-Item": {
-                    "raw": {"_files": ["photo1.jpg", "photo2.jpg"]},
-                    "dcho": {"_files": ["model.obj"]},
+                    "raw": {"_files": {
+                        "photo1.jpg": {"size": 1000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
+                        "photo2.jpg": {"size": 2000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
+                    }},
+                    "dcho": {"_files": {
+                        "model.obj": {"size": 3000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C}\""},
+                    }},
                 }
             }
         }
@@ -261,14 +269,17 @@ class TestCollectFilesFromStructure:
             (
                 "/sites/test/Shared Documents/Sala1/S1-01-Item/raw/photo1.jpg",
                 "Sala1/S1-01-Item/raw/photo1.jpg",
+                {"size": 1000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
             ),
             (
                 "/sites/test/Shared Documents/Sala1/S1-01-Item/raw/photo2.jpg",
                 "Sala1/S1-01-Item/raw/photo2.jpg",
+                {"size": 2000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
             ),
             (
                 "/sites/test/Shared Documents/Sala1/S1-01-Item/dcho/model.obj",
                 "Sala1/S1-01-Item/dcho/model.obj",
+                {"size": 3000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C}\""},
             ),
         ]
         assert result == expected
@@ -278,8 +289,12 @@ class TestCollectFilesFromStructure:
             "Sala1": {
                 "S1-01-Item": {
                     "rawp": {
-                        "materials": {"_files": ["texture.png"]},
-                        "_files": ["model.obj"],
+                        "materials": {"_files": {
+                            "texture.png": {"size": 1000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
+                        }},
+                        "_files": {
+                            "model.obj": {"size": 2000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
+                        },
                     }
                 }
             }
@@ -356,9 +371,77 @@ def mock_progress():
     return mock
 
 
+class TestShouldDownload:
+    def test_returns_true_when_file_does_not_exist(self, tmp_path):
+        local_path = tmp_path / "nonexistent.txt"
+        remote_meta = {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""}
+        assert should_download(remote_meta, local_path) is True
+
+    def test_returns_true_when_size_differs(self, tmp_path):
+        local_path = tmp_path / "file.txt"
+        local_path.write_bytes(b"x" * 50)
+        remote_meta = {"size": 100, "modified": "2020-01-01T10:00:00Z", "etag": "\"{A}\""}
+        assert should_download(remote_meta, local_path) is True
+
+    def test_returns_true_when_remote_is_newer(self, tmp_path):
+        local_path = tmp_path / "file.txt"
+        local_path.write_bytes(b"x" * 100)
+        remote_meta = {"size": 100, "modified": "2099-01-01T10:00:00Z", "etag": "\"{A}\""}
+        assert should_download(remote_meta, local_path) is True
+
+    def test_returns_false_when_same_size_and_local_is_newer(self, tmp_path):
+        local_path = tmp_path / "file.txt"
+        local_path.write_bytes(b"x" * 100)
+        remote_meta = {"size": 100, "modified": "2020-01-01T10:00:00Z", "etag": "\"{A}\""}
+        assert should_download(remote_meta, local_path) is False
+
+
+class TestCollectAllRemotePaths:
+    def test_collects_paths(self):
+        structure = {
+            "Sala1": {"item": {"raw": {"_files": {
+                "photo.jpg": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
+            }}}}
+        }
+        folder_paths = {"Sala1": "/docs/Sala1"}
+        result = collect_all_remote_paths(structure, folder_paths)
+        assert result == {Path("Sala1/item/raw/photo.jpg")}
+
+
+class TestRemoveOrphans:
+    def test_removes_orphan_files(self, tmp_path):
+        orphan = tmp_path / "orphan.txt"
+        orphan.write_bytes(b"data")
+        remote_paths = set()
+        with patch("piccione.download.from_sharepoint.console"):
+            removed = remove_orphans(tmp_path, remote_paths)
+        assert removed == 1
+        assert not orphan.exists()
+
+    def test_keeps_structure_json(self, tmp_path):
+        structure_file = tmp_path / "structure.json"
+        structure_file.write_text("{}")
+        remote_paths = set()
+        with patch("piccione.download.from_sharepoint.console"):
+            removed = remove_orphans(tmp_path, remote_paths)
+        assert removed == 0
+        assert structure_file.exists()
+
+    def test_keeps_remote_files(self, tmp_path):
+        kept = tmp_path / "kept.txt"
+        kept.write_bytes(b"data")
+        remote_paths = {Path("kept.txt")}
+        with patch("piccione.download.from_sharepoint.console"):
+            removed = remove_orphans(tmp_path, remote_paths)
+        assert removed == 0
+        assert kept.exists()
+
+
 class TestDownloadAllFiles:
-    def test_skips_existing_files(self, tmp_path, mock_progress):
-        structure = {"Sala1": {"item": {"raw": {"_files": ["existing.jpg"]}}}}
+    def test_skips_unchanged_files(self, tmp_path, mock_progress):
+        structure = {"Sala1": {"item": {"raw": {"_files": {
+            "existing.jpg": {"size": 12, "modified": "2020-01-01T10:00:00Z", "etag": "\"{A}\""},
+        }}}}}
         folder_paths = {"Sala1": "/docs/Sala1"}
 
         existing = tmp_path / "Sala1" / "item" / "raw" / "existing.jpg"
@@ -376,7 +459,10 @@ class TestDownloadAllFiles:
 
     def test_continues_on_error(self, tmp_path, mock_progress):
         structure = {
-            "Sala1": {"item": {"raw": {"_files": ["fail.jpg", "success.jpg"]}}}
+            "Sala1": {"item": {"raw": {"_files": {
+                "fail.jpg": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
+                "success.jpg": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
+            }}}}
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
 
@@ -408,7 +494,9 @@ class TestDownloadAllFiles:
         assert success_file.exists()
 
     def test_downloads_files(self, tmp_path, mock_progress):
-        structure = {"Sala1": {"item": {"raw": {"_files": ["photo.jpg"]}}}}
+        structure = {"Sala1": {"item": {"raw": {"_files": {
+            "photo.jpg": {"size": 1024, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
+        }}}}}
         folder_paths = {"Sala1": "/docs/Sala1"}
 
         mock_response = MagicMock()

@@ -41,4 +41,7 @@ python -m piccione.upload.on_figshare config.yaml
 
 - Chunked uploads (1MB chunks)
 - MD5 hash verification
+- Skip files already uploaded with matching MD5
+- Automatic re-upload when MD5 differs
+- Automatic retry with exponential backoff for network and server errors (unlimited attempts, max 60s delay)
 - Progress bar for each file

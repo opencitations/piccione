@@ -90,9 +90,15 @@ def get_folder_structure(client, site_url, folder_path):
         subfolder_path = folder["ServerRelativeUrl"]
         result[name] = get_folder_structure(client, site_url, subfolder_path)
 
-    file_list = [f["Name"] for f in files]
-    if file_list:
-        result["_files"] = file_list
+    if files:
+        result["_files"] = {
+            f["Name"]: {
+                "size": int(f["Length"]),
+                "modified": f["TimeLastModified"],
+                "etag": f["ETag"],
+            }
+            for f in files
+        }
 
     return result
 
@@ -128,10 +134,10 @@ def collect_files_from_structure(structure, folder_paths):
     def traverse(node, current_path, base_server_path):
         for key, value in node.items():
             if key == "_files":
-                for filename in value:
+                for filename, metadata in value.items():
                     server_path = f"{base_server_path}/{current_path}/{filename}" if current_path else f"{base_server_path}/{filename}"
                     local_path = f"{current_path}/{filename}" if current_path else filename
-                    files.append((server_path, local_path))
+                    files.append((server_path, local_path, metadata))
             elif isinstance(value, dict):
                 new_path = f"{current_path}/{key}" if current_path else key
                 traverse(value, new_path, base_server_path)
@@ -141,6 +147,15 @@ def collect_files_from_structure(structure, folder_paths):
         traverse({folder_name: folder_structure}, "", base_path.rsplit("/", 1)[0])
 
     return files
+
+
+def should_download(remote_meta, local_path):
+    if not local_path.exists():
+        return True
+    local_size = local_path.stat().st_size
+    local_mtime = datetime.fromtimestamp(local_path.stat().st_mtime, tz=timezone.utc)
+    remote_mtime = datetime.fromisoformat(remote_meta["modified"].replace("Z", "+00:00"))
+    return local_size != remote_meta["size"] or local_mtime < remote_mtime
 
 
 def download_file(client, site_url, file_server_relative_url, local_path):
@@ -156,11 +171,25 @@ def download_file(client, site_url, file_server_relative_url, local_path):
     return local_path.stat().st_size
 
 
+def collect_all_remote_paths(structure, folder_paths):
+    return {Path(local_path) for _, local_path, _ in collect_files_from_structure(structure, folder_paths)}
+
+
+def remove_orphans(output_dir, remote_paths):
+    local_files = {p.relative_to(output_dir) for p in output_dir.rglob("*") if p.is_file() and p.name != "structure.json"}
+    orphans = local_files - remote_paths
+    for orphan in orphans:
+        (output_dir / orphan).unlink()
+        console.print(f"[yellow]Removed: {orphan}")
+    return len(orphans)
+
+
 def download_all_files(client, site_url, structure, output_dir, folder_paths):
     files = collect_files_from_structure(structure, folder_paths)
     total = len(files)
 
     downloaded = 0
+    updated = 0
     skipped = 0
     failed = 0
 
@@ -173,25 +202,32 @@ def download_all_files(client, site_url, structure, output_dir, folder_paths):
     ) as progress:
         task_id = progress.add_task("Downloading...", total=total)
 
-        for server_path, local_rel_path in files:
+        for server_path, local_rel_path, metadata in files:
             local_path = output_dir / local_rel_path
             progress.update(task_id, description=f"[cyan]{local_rel_path}")
 
-            if local_path.exists():
+            if not should_download(metadata, local_path):
                 skipped += 1
                 progress.advance(task_id)
                 continue
 
             try:
+                was_update = local_path.exists()
                 download_file(client, site_url, server_path, local_path)
-                downloaded += 1
+                if was_update:
+                    updated += 1
+                else:
+                    downloaded += 1
             except Exception as e:
                 console.print(f"[red]Failed: {local_rel_path} ({e})")
                 failed += 1
 
             progress.advance(task_id)
 
-    console.print(f"Downloaded: {downloaded}, Skipped: {skipped}, Failed: {failed}")
+    remote_paths = collect_all_remote_paths(structure, folder_paths)
+    removed = remove_orphans(output_dir, remote_paths)
+
+    console.print(f"Downloaded: {downloaded}, Updated: {updated}, Skipped: {skipped}, Failed: {failed}, Removed: {removed}")
 
 
 def main():  # pragma: no cover

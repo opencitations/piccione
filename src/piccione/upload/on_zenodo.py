@@ -43,14 +43,16 @@ class ProgressFileWrapper:
         self.close()
 
 
-def upload_file_with_retry(bucket_url, file_path, token, user_agent, max_retries=5):
+def upload_file_with_retry(bucket_url, file_path, token, user_agent):
     filename = Path(file_path).name
     file_size = Path(file_path).stat().st_size
     url = f"{bucket_url}/{filename}"
 
-    for attempt in range(max_retries):
+    attempt = 0
+    while True:
+        attempt += 1
         try:
-            print(f"\nAttempt {attempt + 1}/{max_retries}: {filename}")
+            print(f"\nAttempt {attempt}: {filename}")
 
             with Progress(
                 "[progress.description]{task.description}",
@@ -74,12 +76,9 @@ def upload_file_with_retry(bucket_url, file_path, token, user_agent, max_retries
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
             print(f"[ERROR] Network error: {e}")
-            if attempt < max_retries - 1:
-                wait = 2 ** attempt
-                print(f"Retrying in {wait}s...")
-                time.sleep(wait)
-            else:
-                raise
+            wait = min(2 ** (attempt - 1), 60)
+            print(f"Retrying in {wait}s...")
+            time.sleep(wait)
         except requests.exceptions.HTTPError as e:
             print(f"[ERROR] HTTP error: {e}")
             raise

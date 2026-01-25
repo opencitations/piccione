@@ -74,7 +74,7 @@ python -m piccione.upload.on_zenodo config.yaml --publish
 
 - Create new depositions or new versions of existing ones
 - Automatic metadata update from configuration
-- Automatic retry with exponential backoff (max 5 retries)
+- Automatic retry with exponential backoff for network errors (unlimited attempts, max 60s delay)
 - Rich progress bar with transfer speed and ETA
 - Sandbox support for testing
 - Optional auto-publish with `--publish` flag

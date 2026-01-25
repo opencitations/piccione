@@ -53,9 +53,9 @@
     "/sites/PE5-Spoke4-CaseStudyAldrovandi/Shared Documents/Sala1/S1-01-CNR_CartaNautica/dcho/Files": {
       "d": {
         "results": [
-          {"Name": "CartaNautica.mtl"},
-          {"Name": "CartaNautica.obj"},
-          {"Name": "NewUVGIMP3.png"}
+          {"Name": "CartaNautica.mtl", "Length": "1024", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{A1}\""},
+          {"Name": "CartaNautica.obj", "Length": "2048", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{A2}\""},
+          {"Name": "NewUVGIMP3.png", "Length": "4096", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{A3}\""}
         ]
       }
     },
@@ -67,9 +67,9 @@
     "/sites/PE5-Spoke4-CaseStudyAldrovandi/Shared Documents/Sala1/S1-01-CNR_CartaNautica/dchoo/Files": {
       "d": {
         "results": [
-          {"Name": "NewUVGIMP3.jpg"},
-          {"Name": "carta_nautica.bin"},
-          {"Name": "carta_nautica.gltf"}
+          {"Name": "NewUVGIMP3.jpg", "Length": "8192", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{B1}\""},
+          {"Name": "carta_nautica.bin", "Length": "16384", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{B2}\""},
+          {"Name": "carta_nautica.gltf", "Length": "512", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{B3}\""}
         ]
       }
     },
@@ -81,11 +81,11 @@
     "/sites/PE5-Spoke4-CaseStudyAldrovandi/Shared Documents/Sala1/S1-01-CNR_CartaNautica/raw/Files": {
       "d": {
         "results": [
-          {"Name": "DSC_8820.JPG"},
-          {"Name": "DSC_8821.JPG"},
-          {"Name": "DSC_8822.JPG"},
-          {"Name": "DSC_8823.JPG"},
-          {"Name": "DSC_8825.JPG"}
+          {"Name": "DSC_8820.JPG", "Length": "5000000", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{C1}\""},
+          {"Name": "DSC_8821.JPG", "Length": "5100000", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{C2}\""},
+          {"Name": "DSC_8822.JPG", "Length": "5200000", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{C3}\""},
+          {"Name": "DSC_8823.JPG", "Length": "5300000", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{C4}\""},
+          {"Name": "DSC_8825.JPG", "Length": "5400000", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{C5}\""}
         ]
       }
     },
@@ -102,10 +102,10 @@
     "/sites/PE5-Spoke4-CaseStudyAldrovandi/Shared Documents/Sala1/S1-01-CNR_CartaNautica/rawp/Files": {
       "d": {
         "results": [
-          {"Name": "CartaNautica.mtl"},
-          {"Name": "CartaNautica.obj"},
-          {"Name": "CartaNautica_tex0.png"},
-          {"Name": "CartaNautica_tex1.png"}
+          {"Name": "CartaNautica.mtl", "Length": "1024", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{D1}\""},
+          {"Name": "CartaNautica.obj", "Length": "2048", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{D2}\""},
+          {"Name": "CartaNautica_tex0.png", "Length": "4096", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{D3}\""},
+          {"Name": "CartaNautica_tex1.png", "Length": "4096", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{D4}\""}
         ]
       }
     },
@@ -122,7 +122,7 @@
     "/sites/PE5-Spoke4-CaseStudyAldrovandi/Shared Documents/Sala1/S1-01-CNR_CartaNautica/rawp/materials/Files": {
       "d": {
         "results": [
-          {"Name": "CartaNautica2.zep"}
+          {"Name": "CartaNautica2.zep", "Length": "10240", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{E1}\""}
         ]
       }
     },
@@ -134,9 +134,9 @@
     "/sites/PE5-Spoke4-CaseStudyAldrovandi/Shared Documents/Sala1/S1-01-CNR_CartaNautica/rawp/materials/CartaNautica2_files/Files": {
       "d": {
         "results": [
-          {"Name": "Buona.3db"},
-          {"Name": "CartaTexturing.obj (2).3db"},
-          {"Name": "CartaTexturing.obj (3).3db"}
+          {"Name": "Buona.3db", "Length": "20480", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{F1}\""},
+          {"Name": "CartaTexturing.obj (2).3db", "Length": "20480", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{F2}\""},
+          {"Name": "CartaTexturing.obj (3).3db", "Length": "20480", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{F3}\""}
         ]
       }
     }
@@ -144,43 +144,93 @@
   "expected_sala1_structure": {
     "S1-01-CNR_CartaNautica": {
       "dcho": {
-        "_files": ["CartaNautica.mtl", "CartaNautica.obj", "NewUVGIMP3.png"]
+        "_files": {
+          "CartaNautica.mtl": {"size": 1024, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A1}\""},
+          "CartaNautica.obj": {"size": 2048, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A2}\""},
+          "NewUVGIMP3.png": {"size": 4096, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A3}\""}
+        }
       },
       "dchoo": {
-        "_files": ["NewUVGIMP3.jpg", "carta_nautica.bin", "carta_nautica.gltf"]
+        "_files": {
+          "NewUVGIMP3.jpg": {"size": 8192, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B1}\""},
+          "carta_nautica.bin": {"size": 16384, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B2}\""},
+          "carta_nautica.gltf": {"size": 512, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B3}\""}
+        }
       },
       "raw": {
-        "_files": ["DSC_8820.JPG", "DSC_8821.JPG", "DSC_8822.JPG", "DSC_8823.JPG", "DSC_8825.JPG"]
+        "_files": {
+          "DSC_8820.JPG": {"size": 5000000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C1}\""},
+          "DSC_8821.JPG": {"size": 5100000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C2}\""},
+          "DSC_8822.JPG": {"size": 5200000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C3}\""},
+          "DSC_8823.JPG": {"size": 5300000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C4}\""},
+          "DSC_8825.JPG": {"size": 5400000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C5}\""}
+        }
       },
       "rawp": {
         "materials": {
           "CartaNautica2_files": {
-            "_files": ["Buona.3db", "CartaTexturing.obj (2).3db", "CartaTexturing.obj (3).3db"]
+            "_files": {
+              "Buona.3db": {"size": 20480, "modified": "2025-01-15T10:00:00Z", "etag": "\"{F1}\""},
+              "CartaTexturing.obj (2).3db": {"size": 20480, "modified": "2025-01-15T10:00:00Z", "etag": "\"{F2}\""},
+              "CartaTexturing.obj (3).3db": {"size": 20480, "modified": "2025-01-15T10:00:00Z", "etag": "\"{F3}\""}
+            }
           },
-          "_files": ["CartaNautica2.zep"]
+          "_files": {
+            "CartaNautica2.zep": {"size": 10240, "modified": "2025-01-15T10:00:00Z", "etag": "\"{E1}\""}
+          }
         },
-        "_files": ["CartaNautica.mtl", "CartaNautica.obj", "CartaNautica_tex0.png", "CartaNautica_tex1.png"]
+        "_files": {
+          "CartaNautica.mtl": {"size": 1024, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D1}\""},
+          "CartaNautica.obj": {"size": 2048, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D2}\""},
+          "CartaNautica_tex0.png": {"size": 4096, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D3}\""},
+          "CartaNautica_tex1.png": {"size": 4096, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D4}\""}
+        }
       }
     }
   },
   "expected_item_structure": {
     "dcho": {
-      "_files": ["CartaNautica.mtl", "CartaNautica.obj", "NewUVGIMP3.png"]
+      "_files": {
+        "CartaNautica.mtl": {"size": 1024, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A1}\""},
+        "CartaNautica.obj": {"size": 2048, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A2}\""},
+        "NewUVGIMP3.png": {"size": 4096, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A3}\""}
+      }
     },
     "dchoo": {
-      "_files": ["NewUVGIMP3.jpg", "carta_nautica.bin", "carta_nautica.gltf"]
+      "_files": {
+        "NewUVGIMP3.jpg": {"size": 8192, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B1}\""},
+        "carta_nautica.bin": {"size": 16384, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B2}\""},
+        "carta_nautica.gltf": {"size": 512, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B3}\""}
+      }
     },
     "raw": {
-      "_files": ["DSC_8820.JPG", "DSC_8821.JPG", "DSC_8822.JPG", "DSC_8823.JPG", "DSC_8825.JPG"]
+      "_files": {
+        "DSC_8820.JPG": {"size": 5000000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C1}\""},
+        "DSC_8821.JPG": {"size": 5100000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C2}\""},
+        "DSC_8822.JPG": {"size": 5200000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C3}\""},
+        "DSC_8823.JPG": {"size": 5300000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C4}\""},
+        "DSC_8825.JPG": {"size": 5400000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C5}\""}
+      }
     },
     "rawp": {
       "materials": {
         "CartaNautica2_files": {
-          "_files": ["Buona.3db", "CartaTexturing.obj (2).3db", "CartaTexturing.obj (3).3db"]
+          "_files": {
+            "Buona.3db": {"size": 20480, "modified": "2025-01-15T10:00:00Z", "etag": "\"{F1}\""},
+            "CartaTexturing.obj (2).3db": {"size": 20480, "modified": "2025-01-15T10:00:00Z", "etag": "\"{F2}\""},
+            "CartaTexturing.obj (3).3db": {"size": 20480, "modified": "2025-01-15T10:00:00Z", "etag": "\"{F3}\""}
+          }
         },
-        "_files": ["CartaNautica2.zep"]
+        "_files": {
+          "CartaNautica2.zep": {"size": 10240, "modified": "2025-01-15T10:00:00Z", "etag": "\"{E1}\""}
+        }
       },
-      "_files": ["CartaNautica.mtl", "CartaNautica.obj", "CartaNautica_tex0.png", "CartaNautica_tex1.png"]
+      "_files": {
+        "CartaNautica.mtl": {"size": 1024, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D1}\""},
+        "CartaNautica.obj": {"size": 2048, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D2}\""},
+        "CartaNautica_tex0.png": {"size": 4096, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D3}\""},
+        "CartaNautica_tex1.png": {"size": 4096, "modified": "2025-01-15T10:00:00Z", "etag": "\"{D4}\""}
+      }
     }
   }
 }

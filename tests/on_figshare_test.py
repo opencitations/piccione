@@ -41,6 +41,7 @@ class TestGetFileCheckData:
 class TestIssueRequest:
     def test_successful_json_response(self):
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.content = b'{"key": "value"}'
         mock_response.raise_for_status = MagicMock()
 
@@ -53,10 +54,12 @@ class TestIssueRequest:
             "https://api.figshare.com/test",
             headers={"Authorization": "token mytoken"},
             data=None,
+            timeout=(30, 300),
         )
 
     def test_successful_binary_response(self):
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.content = b"binary data"
         mock_response.raise_for_status = MagicMock()
 
@@ -67,6 +70,7 @@ class TestIssueRequest:
 
     def test_sends_json_data_when_not_binary(self):
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.content = b'{"result": "ok"}'
         mock_response.raise_for_status = MagicMock()
 
@@ -78,6 +82,7 @@ class TestIssueRequest:
 
     def test_sends_raw_data_when_binary(self):
         mock_response = MagicMock()
+        mock_response.status_code = 200
         mock_response.content = b""
         mock_response.raise_for_status = MagicMock()
 
@@ -89,6 +94,7 @@ class TestIssueRequest:
 
     def test_http_error_is_raised(self):
         mock_response = MagicMock()
+        mock_response.status_code = 404
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
         mock_response.text = "Resource not found"
 
@@ -200,15 +206,16 @@ files_to_upload:
   - {file2}
 """)
 
-        with patch("piccione.upload.on_figshare.create_file") as mock_create:
-            mock_create.side_effect = [
-                {"id": "f1", "upload_url": "https://upload/1"},
-                {"id": "f2", "upload_url": "https://upload/2"},
-            ]
-            with patch("piccione.upload.on_figshare.upload_parts"):
-                with patch("piccione.upload.on_figshare.complete_upload") as mock_complete:
-                    with patch("piccione.upload.on_figshare.tqdm", side_effect=lambda x, **kw: x):
-                        main(str(config_file))
+        with patch("piccione.upload.on_figshare.get_existing_files", return_value={}):
+            with patch("piccione.upload.on_figshare.create_file") as mock_create:
+                mock_create.side_effect = [
+                    {"id": "f1", "upload_url": "https://upload/1"},
+                    {"id": "f2", "upload_url": "https://upload/2"},
+                ]
+                with patch("piccione.upload.on_figshare.upload_parts"):
+                    with patch("piccione.upload.on_figshare.complete_upload") as mock_complete:
+                        with patch("piccione.upload.on_figshare.tqdm", side_effect=lambda x, **kw: x):
+                            main(str(config_file))
 
         assert mock_create.call_count == 2
         assert mock_complete.call_count == 2
