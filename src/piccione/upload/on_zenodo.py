@@ -148,6 +148,23 @@ def text_to_html(text):
     return ''.join(html_parts)
 
 
+DIRECT_COPY_FIELDS = (
+    'title', 'upload_type', 'creators', 'keywords', 'license',
+    'publication_date', 'access_right', 'publication_type', 'image_type',
+    'embargo_date', 'access_conditions', 'doi', 'prereserve_doi',
+    'related_identifiers', 'contributors', 'references', 'communities',
+    'grants', 'subjects', 'thesis_supervisors', 'thesis_university',
+    'journal_title', 'journal_volume', 'journal_issue', 'journal_pages',
+    'conference_title', 'conference_acronym', 'conference_dates',
+    'conference_place', 'conference_url', 'conference_session',
+    'conference_session_part', 'imprint_publisher', 'imprint_isbn',
+    'imprint_place', 'partof_title', 'partof_pages', 'version',
+    'language', 'locations', 'dates',
+)
+
+HTML_FIELDS = ('description', 'notes', 'method')
+
+
 def update_metadata(base_url, token, draft_id, config, user_agent):
     headers = get_headers(token, user_agent, 'application/json')
 
@@ -163,12 +180,13 @@ def update_metadata(base_url, token, draft_id, config, user_agent):
         if not existing['dates']:
             del existing['dates']
 
-    for field in ('title', 'upload_type', 'creators', 'keywords', 'license'):
+    for field in DIRECT_COPY_FIELDS:
         if field in config:
             existing[field] = config[field]
 
-    if 'description' in config:
-        existing['description'] = text_to_html(config['description'])
+    for field in HTML_FIELDS:
+        if field in config:
+            existing[field] = text_to_html(config[field])
 
     response = requests.put(
         f"{base_url}/deposit/depositions/{draft_id}",
