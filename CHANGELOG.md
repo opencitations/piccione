@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/opencitations/piccione/compare/v2.1.0...v2.2.0) (2026-01-29)
+
+
+### Features
+
+* **zenodo:** add support for all Zenodo API metadata fields [release] ([220679f](https://github.com/opencitations/piccione/commit/220679f14a6258ba23592b540a6cda2f7217e020))
+
 # [2.1.0](https://github.com/opencitations/piccione/compare/v2.0.0...v2.1.0) (2026-01-25)
 
 
