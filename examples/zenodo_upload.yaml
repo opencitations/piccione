@@ -1,76 +1,59 @@
 # Zenodo upload configuration
 # Obtain your access token from: Account Settings > Applications > Personal access tokens
-# Use https://sandbox.zenodo.org/api for testing
+# Use https://sandbox.zenodo.org for testing
 
-zenodo_url: https://zenodo.org/api
+zenodo_url: https://zenodo.org
 access_token: <YOUR_ZENODO_TOKEN>
 user_agent: piccione/2.0.0
 
-# Optional: omit to create new deposition, provide to create new version
-# project_id: 12345678
-
+# Required metadata
 title: My Dataset
+publication_date: "2024-01-15"
+
+# Resource type (default: dataset)
 upload_type: dataset
 # upload_type values: publication, poster, presentation, dataset, image, video,
 #                     software, lesson, physicalobject, other
 
-# Required when upload_type is "publication":
-# publication_type: article
-# publication_type values: annotationcollection, book, section, conferencepaper,
-#                          datamanagementplan, article, patent, preprint, deliverable,
-#                          milestone, proposal, report, softwaredocumentation,
-#                          taxonomictreatment, technicalnote, thesis, workingpaper, other
-
-# Required when upload_type is "image":
-# image_type: figure
-# image_type values: figure, plot, drawing, diagram, photo, other
+# Publisher (default: Zenodo)
+# publisher: My Organization
 
 creators:
   - name: Doe, John
     affiliation: University of Bologna
     orcid: 0000-0000-0000-0000
-
-# contributors:
-#   - name: Smith, Jane
-#     affiliation: Research Institute
-#     type: DataCurator
-#     orcid: 0000-0000-0000-0001
-# contributor type values: ContactPerson, DataCollector, DataCurator, DataManager,
-#                          Distributor, Editor, HostingInstitution, Producer,
-#                          ProjectLeader, ProjectManager, ProjectMember,
-#                          RegistrationAgency, RegistrationAuthority, RelatedPerson,
-#                          Researcher, ResearchGroup, RightsHolder, Supervisor,
-#                          Sponsor, WorkPackageLeader, Other
+  # Alternative name format: "Given Family" instead of "Family, Given"
+  # - name: Jane Smith
+  #   affiliation: Research Institute
 
 keywords:
   - data
   - research
 
-license: cc-by-4.0
-# license values: query /api/licenses for available options
-# default: cc-zero (datasets), cc-by (other types)
-
-access_right: open
-# access_right values: open (default), embargoed, restricted, closed
-
-# Required when access_right is "embargoed":
-# embargo_date: 2025-12-31
-
-# Required when access_right is "restricted":
-# access_conditions: Access granted upon request.
+# License rights (InvenioRDM format)
+# Option 1: Standard license by ID
+rights:
+  - id: cc-by-4.0
+# Option 2: Custom license with title, description, and link
+# rights:
+#   - title: Custom License
+#     description: License terms here
+#     link: https://example.com/license
 
 description: |
   Dataset description here.
 
-  Multiple paragraphs supported.
+  Multiple paragraphs supported. URLs are automatically linked:
+  https://example.com
+
+  - Bullet lists work too
+  - Another item
 
 # notes: |
 #   Additional notes about the dataset.
 
 # method: |
 #   Description of the methodology used.
-
-# publication_date: 2024-01-15
 
 # version: "1.0.0"
 
@@ -80,71 +63,19 @@ description: |
 # related_identifiers:
 #   - identifier: 10.1234/example.doi
 #     relation: isSupplementTo
-#     resource_type: publication-article
-# relation values: isCitedBy, cites, isSupplementTo, isSupplementedBy, isContinuedBy,
-#                  continues, isDescribedBy, describes, hasMetadata, isMetadataFor,
-#                  isNewVersionOf, isPreviousVersionOf, isPartOf, hasPart,
-#                  isReferencedBy, references, isDocumentedBy, documents,
-#                  isCompiledBy, compiles, isVariantFormOf, isOriginalFormOf,
-#                  isIdenticalTo, isAlternateIdentifier, isReviewedBy, reviews,
-#                  isDerivedFrom, isSourceOf, requires, isRequiredBy,
-#                  isObsoletedBy, obsoletes
-
-# communities:
-#   - identifier: opencitations
-
-# grants:
-#   - id: "10.13039/501100000780::101095129"
+#   - identifier: https://example.com/related
+#     relation: isDocumentedBy
+# relation values: isCitedBy, cites, isSupplementTo, isSupplementedBy,
+#                  isDescribedBy, isNewVersionOf, isPreviousVersionOf,
+#                  isPartOf, hasPart, isReferencedBy, references,
+#                  isDocumentedBy, isDerivedFrom, isSourceOf,
+#                  isIdenticalTo, isAlternateIdentifier
 
 # locations:
 #   - place: Bologna, Italy
 #     lat: 44.4949
 #     lon: 11.3426
 #     description: Data collection site
-
-# dates:
-#   - start: 2023-01-01
-#     end: 2023-12-31
-#     type: Collected
-#     description: Data collection period
-# date type values: Collected, Valid, Withdrawn
-
-# references:
-#   - "Doe, J. (2023). Example Reference. Journal Name, 1(1), 1-10."
-
-# subjects:
-#   - term: Computer Science
-#     identifier: https://id.loc.gov/authorities/subjects/sh89003285
-#     scheme: url
-
-# Journal metadata (for publication_type: article):
-# journal_title: Journal of Example Studies
-# journal_volume: "10"
-# journal_issue: "2"
-# journal_pages: 100-120
-
-# Conference metadata:
-# conference_title: International Conference on Examples
-# conference_acronym: ICE2024
-# conference_dates: 15-17 March 2024
-# conference_place: Bologna, Italy
-# conference_url: https://example.org/conference
-# conference_session: Session 1
-# conference_session_part: Part A
-
-# Book/Report metadata:
-# imprint_publisher: Example Publisher
-# imprint_isbn: 978-3-16-148410-0
-# imprint_place: Bologna
-# partof_title: Handbook of Examples
-# partof_pages: 50-75
-
-# Thesis metadata:
-# thesis_university: University of Bologna
-# thesis_supervisors:
-#   - name: Professor, Example
-#     affiliation: University of Bologna
-#     orcid: 0000-0000-0000-0002
 
 files:
   - /path/to/dataset.zip
