@@ -1,3 +1,24 @@
+# [3.0.0](https://github.com/opencitations/piccione/compare/v2.2.0...v3.0.0) (2026-02-18)
+
+
+* feat(zenodo)!: complete InvenioRDM migration with versioning, community review, and config passthrough [release] ([aac11ee](https://github.com/opencitations/piccione/commit/aac11ee19c18d99c1eee6f1a640be6dbe3a2b47d))
+* feat(zenodo)!: migrate from legacy API to InvenioRDM ([73bb09b](https://github.com/opencitations/piccione/commit/73bb09b484af77d4b3d4e5270633fa2aa825e196))
+
+
+### BREAKING CHANGES
+
+* config format now requires InvenioRDM-native structures
+for creators, resource_type, access, and other metadata fields. The fields
+upload_type, notes, method, and legacy creator name parsing are removed.
+* Configuration format changed for InvenioRDM compatibility.
+- `license` renamed to `rights` (now accepts `id` or `title`/`description`/`link`)
+- `project_id` removed (versioning not supported)
+- Removed fields: `contributors`, `access_right`, `embargo_date`, `access_conditions`,
+  `doi`, `prereserve_doi`, `communities`, `grants`, `dates`, `references`, `subjects`,
+  `thesis_*`, `journal_*`, `conference_*`, `imprint_*`, `partof_*`, `publication_type`,
+  `image_type`
+- `title` and `publication_date` now required
+
 # [2.2.0](https://github.com/opencitations/piccione/compare/v2.1.0...v2.2.0) (2026-01-29)
 
 
