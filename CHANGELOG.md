@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/opencitations/piccione/compare/v3.0.0...v3.0.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* **zenodo:** use correct InvenioRDM field names for languages and subjects [release] ([45dbfb0](https://github.com/opencitations/piccione/commit/45dbfb015e4a09df8fb9684fe5d7efd76a72a7d3))
+
 # [3.0.0](https://github.com/opencitations/piccione/compare/v2.2.0...v3.0.0) (2026-02-18)
 
 
