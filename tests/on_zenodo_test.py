@@ -5,9 +5,7 @@ import requests
 
 from piccione.upload.on_zenodo import (
     ProgressFileWrapper,
-    _map_relation_type,
-    build_inveniordm_metadata,
-    linkify_urls,
+    build_inveniordm_payload,
     main,
     publish_draft,
     text_to_html,
@@ -21,19 +19,19 @@ class TestProgressFileWrapper:
         test_file.write_text("hello")
 
         mock_progress = MagicMock()
-        wrapper = ProgressFileWrapper(str(test_file), mock_progress, "task-1")
+        wrapper = ProgressFileWrapper(str(test_file), mock_progress, 1)
         data = wrapper.read(3)
         wrapper.close()
 
         assert data == b"hel"
-        mock_progress.update.assert_called_once_with("task-1", advance=3)
+        mock_progress.update.assert_called_once_with(1, advance=3)
 
     def test_len_returns_file_size(self, tmp_path):
         test_file = tmp_path / "test.txt"
         test_file.write_text("hello")
 
         mock_progress = MagicMock()
-        wrapper = ProgressFileWrapper(str(test_file), mock_progress, "task-1")
+        wrapper = ProgressFileWrapper(str(test_file), mock_progress, 1)
         size = len(wrapper)
         wrapper.close()
 
@@ -44,243 +42,135 @@ class TestProgressFileWrapper:
         test_file.write_text("hello")
 
         mock_progress = MagicMock()
-        wrapper = ProgressFileWrapper(str(test_file), mock_progress, "task-1")
+        wrapper = ProgressFileWrapper(str(test_file), mock_progress, 1)
         wrapper.close()
 
         assert wrapper.fp.closed
 
 
-class TestLinkifyUrls:
-    def test_linkify_single_url(self):
-        text = "Visit https://example.com for more info"
-        result = linkify_urls(text)
-        assert result == 'Visit <a href="https://example.com">https://example.com</a> for more info'
-
-    def test_linkify_multiple_urls(self):
-        text = "See https://a.com and http://b.com"
-        result = linkify_urls(text)
-        assert result == 'See <a href="https://a.com">https://a.com</a> and <a href="http://b.com">http://b.com</a>'
-
-    def test_no_urls(self):
-        text = "No URLs here"
-        result = linkify_urls(text)
-        assert result == "No URLs here"
-
-
 class TestTextToHtml:
     def test_single_paragraph(self):
-        text = "Single paragraph"
-        result = text_to_html(text)
-        assert result == "<p>Single paragraph</p>"
+        assert text_to_html("Single paragraph") == "<p>Single paragraph</p>"
 
     def test_multiple_paragraphs(self):
-        text = "First paragraph\n\nSecond paragraph"
-        result = text_to_html(text)
-        assert result == "<p>First paragraph</p><p>Second paragraph</p>"
+        assert text_to_html("First paragraph\n\nSecond paragraph") == "<p>First paragraph</p><p>Second paragraph</p>"
 
     def test_paragraph_with_line_breaks(self):
-        text = "Line one\nLine two"
-        result = text_to_html(text)
-        assert result == "<p>Line one<br>Line two</p>"
+        assert text_to_html("Line one\nLine two") == "<p>Line one<br>Line two</p>"
 
     def test_bullet_list(self):
-        text = "- Item one\n- Item two"
-        result = text_to_html(text)
-        assert result == "<ul><li>Item one</li><li>Item two</li></ul>"
+        assert text_to_html("- Item one\n- Item two") == "<ul><li>Item one</li><li>Item two</li></ul>"
 
     def test_paragraph_then_list(self):
-        text = "Introduction\n\n- Item one\n- Item two"
-        result = text_to_html(text)
-        assert result == "<p>Introduction</p><ul><li>Item one</li><li>Item two</li></ul>"
-
-    def test_urls_in_paragraph(self):
-        text = "Visit https://example.com"
-        result = text_to_html(text)
-        assert result == '<p>Visit <a href="https://example.com">https://example.com</a></p>'
+        assert text_to_html("Introduction\n\n- Item one\n- Item two") == "<p>Introduction</p><ul><li>Item one</li><li>Item two</li></ul>"
 
 
-class TestMapRelationType:
-    def test_known_relation(self):
-        assert _map_relation_type("isDocumentedBy") == "isdocumentedby"
-        assert _map_relation_type("isPartOf") == "ispartof"
-        assert _map_relation_type("references") == "references"
-
-    def test_unknown_relation_lowercased(self):
-        assert _map_relation_type("CustomRelation") == "customrelation"
-
-
-class TestBuildInvenioRdmMetadata:
+class TestBuildInvenioRdmPayload:
     def test_minimal_config(self):
         config = {
             "title": "Test Title",
             "publication_date": "2024-01-15",
-        }
-        result = build_inveniordm_metadata(config)
-        assert result == {
-            "title": "Test Title",
-            "publication_date": "2024-01-15",
             "resource_type": {"id": "dataset"},
-            "publisher": "Zenodo",
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "John", "family_name": "Doe"}}],
+            "access": {"record": "public", "files": "public"},
+        }
+        result = build_inveniordm_payload(config)
+        assert result == {
+            "access": {"record": "public", "files": "public"},
+            "files": {"enabled": True},
+            "metadata": {
+                "title": "Test Title",
+                "publication_date": "2024-01-15",
+                "resource_type": {"id": "dataset"},
+                "creators": [{"person_or_org": {"type": "personal", "given_name": "John", "family_name": "Doe"}}],
+            },
         }
 
     def test_with_description(self):
         config = {
             "title": "Test",
             "publication_date": "2024-01-15",
+            "resource_type": {"id": "dataset"},
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
+            "access": {"record": "public", "files": "public"},
             "description": "Test description",
         }
-        result = build_inveniordm_metadata(config)
-        assert result["description"] == "<p>Test description</p>"
+        result = build_inveniordm_payload(config)
+        assert result["metadata"]["description"] == "<p>Test description</p>"
 
-    def test_with_creators_comma_format(self):
+    def test_with_additional_descriptions(self):
         config = {
             "title": "Test",
             "publication_date": "2024-01-15",
-            "creators": [
-                {"name": "Doe, John", "orcid": "0000-0001-2345-6789", "affiliation": "University"}
+            "resource_type": {"id": "dataset"},
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
+            "access": {"record": "public", "files": "public"},
+            "additional_descriptions": [
+                {"description": "Some notes", "type": {"id": "notes"}},
             ],
         }
-        result = build_inveniordm_metadata(config)
-        assert result["creators"] == [
-            {
-                "person_or_org": {
-                    "type": "personal",
-                    "given_name": "John",
-                    "family_name": "Doe",
-                    "identifiers": [{"scheme": "orcid", "identifier": "0000-0001-2345-6789"}],
-                },
-                "affiliations": [{"name": "University"}],
-            }
+        result = build_inveniordm_payload(config)
+        assert result["metadata"]["additional_descriptions"] == [
+            {"description": "<p>Some notes</p>", "type": {"id": "notes"}},
         ]
 
-    def test_with_creators_space_format(self):
+    def test_passthrough_fields(self):
         config = {
             "title": "Test",
             "publication_date": "2024-01-15",
-            "creators": [{"name": "John Doe"}],
-        }
-        result = build_inveniordm_metadata(config)
-        assert result["creators"][0]["person_or_org"]["given_name"] == "John"
-        assert result["creators"][0]["person_or_org"]["family_name"] == "Doe"
-
-    def test_with_keywords(self):
-        config = {
-            "title": "Test",
-            "publication_date": "2024-01-15",
+            "resource_type": {"id": "dataset"},
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
+            "access": {"record": "public", "files": "public"},
             "keywords": ["data", "research"],
-        }
-        result = build_inveniordm_metadata(config)
-        assert result["subjects"] == [{"subject": "data"}, {"subject": "research"}]
-
-    def test_with_rights(self):
-        config = {
-            "title": "Test",
-            "publication_date": "2024-01-15",
             "rights": [{"id": "cc-by-4.0"}],
-        }
-        result = build_inveniordm_metadata(config)
-        assert result["rights"] == [{"id": "cc-by-4.0"}]
-
-    def test_with_related_identifiers(self):
-        config = {
-            "title": "Test",
-            "publication_date": "2024-01-15",
-            "related_identifiers": [
-                {"identifier": "10.1234/example", "relation": "isPartOf"},
-                {"identifier": "https://example.com", "relation": "isDocumentedBy"},
-            ],
-        }
-        result = build_inveniordm_metadata(config)
-        assert result["related_identifiers"] == [
-            {"identifier": "10.1234/example", "relation_type": {"id": "ispartof"}, "scheme": "doi"},
-            {"identifier": "https://example.com", "relation_type": {"id": "isdocumentedby"}, "scheme": "url"},
-        ]
-
-    def test_with_version(self):
-        config = {
-            "title": "Test",
-            "publication_date": "2024-01-15",
             "version": "1.0.0",
+            "language": {"id": "eng"},
+            "publisher": "Zenodo",
         }
-        result = build_inveniordm_metadata(config)
-        assert result["version"] == "1.0.0"
+        result = build_inveniordm_payload(config)
+        assert result["metadata"]["keywords"] == ["data", "research"]
+        assert result["metadata"]["rights"] == [{"id": "cc-by-4.0"}]
+        assert result["metadata"]["version"] == "1.0.0"
+        assert result["metadata"]["language"] == {"id": "eng"}
+        assert result["metadata"]["publisher"] == "Zenodo"
 
-    def test_with_language(self):
+    def test_files_always_enabled(self):
         config = {
             "title": "Test",
             "publication_date": "2024-01-15",
-            "language": "eng",
+            "resource_type": {"id": "dataset"},
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
+            "access": {"record": "public", "files": "public"},
         }
-        result = build_inveniordm_metadata(config)
-        assert result["languages"] == [{"id": "eng"}]
-
-    def test_with_notes(self):
-        config = {
-            "title": "Test",
-            "publication_date": "2024-01-15",
-            "notes": "Some notes",
-        }
-        result = build_inveniordm_metadata(config)
-        assert result["additional_descriptions"] == [
-            {"description": "<p>Some notes</p>", "type": {"id": "notes"}}
-        ]
-
-    def test_with_method(self):
-        config = {
-            "title": "Test",
-            "publication_date": "2024-01-15",
-            "method": "Methodology description",
-        }
-        result = build_inveniordm_metadata(config)
-        assert result["additional_descriptions"] == [
-            {"description": "<p>Methodology description</p>", "type": {"id": "methods"}}
-        ]
-
-    def test_with_locations(self):
-        config = {
-            "title": "Test",
-            "publication_date": "2024-01-15",
-            "locations": [
-                {"lat": 44.49, "lon": 11.34, "place": "Bologna", "description": "Site A"}
-            ],
-        }
-        result = build_inveniordm_metadata(config)
-        assert result["locations"] == {
-            "features": [
-                {
-                    "geometry": {"type": "Point", "coordinates": [11.34, 44.49]},
-                    "place": "Bologna",
-                    "description": "Site A",
-                }
-            ]
-        }
+        result = build_inveniordm_payload(config)
+        assert result["files"] == {"enabled": True}
 
 
 class TestPublishDraft:
     def test_successful_publish(self):
         mock_response = MagicMock()
-        mock_response.status_code = 202
-        mock_response.json.return_value = {"id": "abc123"}
+        mock_response.ok = True
+        mock_response.json.return_value = {"id": "abc123", "links": {"self_html": "https://zenodo.org/records/abc123"}}
 
         with patch("piccione.upload.on_zenodo.requests.post", return_value=mock_response) as mock_post:
-            result = publish_draft("https://zenodo.org", "token", "Agent/1.0", "draft-id")
+            result = publish_draft("https://zenodo.org/api", "token", "draft-id", "Agent/1.0")
 
-        assert result == {"id": "abc123"}
+        assert result == {"id": "abc123", "links": {"self_html": "https://zenodo.org/records/abc123"}}
         mock_post.assert_called_once_with(
             "https://zenodo.org/api/records/draft-id/draft/actions/publish",
-            headers={"Authorization": "Bearer token", "User-Agent": "Agent/1.0", "Content-Type": "application/json"},
-            timeout=30,
+            headers={"Authorization": "Bearer token", "User-Agent": "Agent/1.0"},
         )
 
     def test_publish_error_raises(self):
         mock_response = MagicMock()
+        mock_response.ok = False
         mock_response.status_code = 400
         mock_response.text = "Bad request"
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("400")
 
         with patch("piccione.upload.on_zenodo.requests.post", return_value=mock_response):
             with pytest.raises(requests.exceptions.HTTPError):
-                publish_draft("https://zenodo.org", "token", "Agent/1.0", "draft-id")
+                publish_draft("https://zenodo.org/api", "token", "draft-id", "Agent/1.0")
 
 
 class TestUploadFileWithRetry:
@@ -288,49 +178,35 @@ class TestUploadFileWithRetry:
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
 
-        mock_register_response = MagicMock()
-        mock_register_response.status_code = 200
-        mock_register_response.json.return_value = {
-            "entries": [
-                {
-                    "links": {
-                        "content": "https://zenodo.org/content/123",
-                        "commit": "https://zenodo.org/commit/123",
-                    }
-                }
-            ]
-        }
-
+        mock_init_response = MagicMock()
+        mock_init_response.status_code = 200
         mock_upload_response = MagicMock()
         mock_upload_response.status_code = 200
-
         mock_commit_response = MagicMock()
         mock_commit_response.status_code = 200
 
         with patch("piccione.upload.on_zenodo.requests.post") as mock_post:
             with patch("piccione.upload.on_zenodo.requests.put", return_value=mock_upload_response):
                 with patch("piccione.upload.on_zenodo.Progress"):
-                    mock_post.side_effect = [mock_register_response, mock_commit_response]
-                    result = upload_file_with_retry(
-                        "https://zenodo.org/files", str(test_file), "token123", "TestAgent/1.0"
+                    mock_post.side_effect = [mock_init_response, mock_commit_response]
+                    upload_file_with_retry(
+                        "https://zenodo.org/api", "rec123", str(test_file), "token123", "TestAgent/1.0"
                     )
 
-        assert result == mock_commit_response
         assert mock_post.call_count == 2
+        mock_post.assert_any_call(
+            "https://zenodo.org/api/records/rec123/draft/files",
+            headers={"Authorization": "Bearer token123", "User-Agent": "TestAgent/1.0", "Content-Type": "application/json"},
+            json=[{"key": "test.txt"}],
+        )
 
     def test_retry_on_timeout(self, tmp_path):
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
 
-        mock_register_response = MagicMock()
-        mock_register_response.status_code = 200
-        mock_register_response.json.return_value = {
-            "entries": [{"links": {"content": "https://zenodo.org/c", "commit": "https://zenodo.org/m"}}]
-        }
+        mock_init_response = MagicMock()
         mock_upload_response = MagicMock()
-        mock_upload_response.status_code = 200
         mock_commit_response = MagicMock()
-        mock_commit_response.status_code = 200
 
         with patch("piccione.upload.on_zenodo.requests.post") as mock_post:
             with patch("piccione.upload.on_zenodo.requests.put") as mock_put:
@@ -338,30 +214,23 @@ class TestUploadFileWithRetry:
                     with patch("piccione.upload.on_zenodo.time.sleep") as mock_sleep:
                         mock_post.side_effect = [
                             requests.exceptions.Timeout(),
-                            mock_register_response,
+                            mock_init_response,
                             mock_commit_response,
                         ]
                         mock_put.return_value = mock_upload_response
-                        result = upload_file_with_retry(
-                            "https://zenodo.org/files", str(test_file), "token123", "TestAgent/1.0"
+                        upload_file_with_retry(
+                            "https://zenodo.org/api", "rec123", str(test_file), "token123", "TestAgent/1.0"
                         )
 
-        assert result == mock_commit_response
         mock_sleep.assert_called_once_with(1)
 
     def test_retry_on_connection_error(self, tmp_path):
         test_file = tmp_path / "test.txt"
         test_file.write_text("content")
 
-        mock_register_response = MagicMock()
-        mock_register_response.status_code = 200
-        mock_register_response.json.return_value = {
-            "entries": [{"links": {"content": "https://zenodo.org/c", "commit": "https://zenodo.org/m"}}]
-        }
+        mock_init_response = MagicMock()
         mock_upload_response = MagicMock()
-        mock_upload_response.status_code = 200
         mock_commit_response = MagicMock()
-        mock_commit_response.status_code = 200
 
         with patch("piccione.upload.on_zenodo.requests.post") as mock_post:
             with patch("piccione.upload.on_zenodo.requests.put") as mock_put:
@@ -370,15 +239,14 @@ class TestUploadFileWithRetry:
                         mock_post.side_effect = [
                             requests.exceptions.ConnectionError(),
                             requests.exceptions.ConnectionError(),
-                            mock_register_response,
+                            mock_init_response,
                             mock_commit_response,
                         ]
                         mock_put.return_value = mock_upload_response
-                        result = upload_file_with_retry(
-                            "https://zenodo.org/files", str(test_file), "token123", "TestAgent/1.0"
+                        upload_file_with_retry(
+                            "https://zenodo.org/api", "rec123", str(test_file), "token123", "TestAgent/1.0"
                         )
 
-        assert result == mock_commit_response
         assert mock_sleep.call_count == 2
         mock_sleep.assert_any_call(1)
         mock_sleep.assert_any_call(2)
@@ -390,152 +258,212 @@ class TestUploadFileWithRetry:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("403 Forbidden")
 
-        with patch("piccione.upload.on_zenodo.requests.post", return_value=mock_response) as mock_post:
+        with patch("piccione.upload.on_zenodo.requests.post", return_value=mock_response):
             with patch("piccione.upload.on_zenodo.Progress"):
                 with pytest.raises(requests.exceptions.HTTPError):
                     upload_file_with_retry(
-                        "https://zenodo.org/files", str(test_file), "token123", "TestAgent/1.0"
+                        "https://zenodo.org/api", "rec123", str(test_file), "token123", "TestAgent/1.0"
                     )
 
-        assert mock_post.call_count == 1
+
+def _base_config(tmp_path):
+    test_file = tmp_path / "data.txt"
+    test_file.write_text("data")
+    config_file = tmp_path / "config.yaml"
+    return config_file, test_file
 
 
 class TestMain:
     def test_creates_draft_and_uploads(self, tmp_path):
-        config_file = tmp_path / "config.yaml"
-        test_file = tmp_path / "data.txt"
-        test_file.write_text("data")
-        config_file.write_text(f"""
-zenodo_url: https://zenodo.org
-access_token: test_token
-user_agent: TestAgent/1.0
-title: Test Dataset
-publication_date: "2024-01-15"
-files:
-  - {test_file}
-""")
-
-        mock_draft = {
-            "id": "abc123",
-            "links": {"files": "https://zenodo.org/api/records/abc123/draft/files"},
-        }
-
-        with patch("piccione.upload.on_zenodo.create_new_draft", return_value=mock_draft) as mock_create:
-            with patch("piccione.upload.on_zenodo.upload_file_with_retry") as mock_upload:
-                result = main(str(config_file))
-
-        assert result == mock_draft
-        mock_create.assert_called_once()
-        call_args = mock_create.call_args
-        assert call_args[0][0] == "https://zenodo.org"
-        assert call_args[0][1] == "test_token"
-        assert call_args[0][2] == "TestAgent/1.0"
-        mock_upload.assert_called_once()
-
-    def test_sandbox_url_handling(self, tmp_path):
-        config_file = tmp_path / "config.yaml"
-        test_file = tmp_path / "data.txt"
-        test_file.write_text("data")
-        config_file.write_text(f"""
-zenodo_url: https://sandbox.zenodo.org
-access_token: test_token
-user_agent: TestAgent/1.0
-title: Test Dataset
-publication_date: "2024-01-15"
-files:
-  - {test_file}
-""")
-
-        mock_draft = {
-            "id": "abc123",
-            "links": {"files": "https://sandbox.zenodo.org/api/records/abc123/draft/files"},
-        }
-
-        with patch("piccione.upload.on_zenodo.create_new_draft", return_value=mock_draft) as mock_create:
-            with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
-                main(str(config_file))
-
-        call_args = mock_create.call_args
-        assert call_args[0][0] == "https://sandbox.zenodo.org"
-
-    def test_url_with_api_suffix(self, tmp_path):
-        config_file = tmp_path / "config.yaml"
-        test_file = tmp_path / "data.txt"
-        test_file.write_text("data")
+        config_file, test_file = _base_config(tmp_path)
         config_file.write_text(f"""
 zenodo_url: https://zenodo.org/api
 access_token: test_token
 user_agent: TestAgent/1.0
 title: Test Dataset
 publication_date: "2024-01-15"
+resource_type:
+  id: dataset
+creators:
+  - person_or_org:
+      type: personal
+      given_name: John
+      family_name: Doe
+access:
+  record: public
+  files: public
 files:
   - {test_file}
 """)
 
-        mock_draft = {
-            "id": "abc123",
-            "links": {"files": "https://zenodo.org/api/records/abc123/draft/files"},
-        }
+        mock_draft = {"id": "abc123"}
 
-        with patch("piccione.upload.on_zenodo.create_new_draft", return_value=mock_draft) as mock_create:
-            with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
+        with patch("piccione.upload.on_zenodo.create_draft", return_value=mock_draft) as mock_create:
+            with patch("piccione.upload.on_zenodo.upload_file_with_retry") as mock_upload:
                 main(str(config_file))
 
-        call_args = mock_create.call_args
-        assert call_args[0][0] == "https://zenodo.org"
+        mock_create.assert_called_once()
+        args = mock_create.call_args[0]
+        assert args[0] == "https://zenodo.org/api"
+        assert args[1] == "test_token"
+        assert args[2] == "TestAgent/1.0"
+        mock_upload.assert_called_once_with("https://zenodo.org/api", "abc123", str(test_file), "test_token", "TestAgent/1.0")
+
+    def test_new_version_flow(self, tmp_path):
+        config_file, test_file = _base_config(tmp_path)
+        config_file.write_text(f"""
+zenodo_url: https://zenodo.org/api
+access_token: test_token
+user_agent: TestAgent/1.0
+record_id: existing-123
+title: Test Dataset v2
+publication_date: "2024-06-01"
+resource_type:
+  id: dataset
+creators:
+  - person_or_org:
+      type: personal
+      given_name: John
+      family_name: Doe
+access:
+  record: public
+  files: public
+files:
+  - {test_file}
+""")
+
+        mock_draft = {"id": "new-456"}
+
+        with patch("piccione.upload.on_zenodo.create_new_version", return_value=mock_draft) as mock_version:
+            with patch("piccione.upload.on_zenodo.delete_draft_files") as mock_delete:
+                with patch("piccione.upload.on_zenodo.update_draft_metadata") as mock_update:
+                    with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
+                        main(str(config_file))
+
+        mock_version.assert_called_once_with("https://zenodo.org/api", "test_token", "existing-123", "TestAgent/1.0")
+        mock_delete.assert_called_once_with("https://zenodo.org/api", "test_token", "new-456", "TestAgent/1.0")
+        mock_update.assert_called_once()
 
     def test_uploads_all_files(self, tmp_path):
-        config_file = tmp_path / "config.yaml"
         file1 = tmp_path / "file1.txt"
         file2 = tmp_path / "file2.txt"
         file1.write_text("content1")
         file2.write_text("content2")
+        config_file = tmp_path / "config.yaml"
         config_file.write_text(f"""
-zenodo_url: https://zenodo.org
+zenodo_url: https://zenodo.org/api
 access_token: token
 user_agent: TestAgent/1.0
 title: Test
 publication_date: "2024-01-15"
+resource_type:
+  id: dataset
+creators:
+  - person_or_org:
+      type: personal
+      given_name: J
+      family_name: D
+access:
+  record: public
+  files: public
 files:
   - {file1}
   - {file2}
 """)
 
-        mock_draft = {
-            "id": "abc123",
-            "links": {"files": "https://zenodo.org/api/records/abc123/draft/files"},
-        }
-
-        with patch("piccione.upload.on_zenodo.create_new_draft", return_value=mock_draft):
+        with patch("piccione.upload.on_zenodo.create_draft", return_value={"id": "abc123"}):
             with patch("piccione.upload.on_zenodo.upload_file_with_retry") as mock_upload:
                 main(str(config_file))
 
         assert mock_upload.call_count == 2
 
     def test_publish_flag(self, tmp_path):
-        config_file = tmp_path / "config.yaml"
-        test_file = tmp_path / "data.txt"
-        test_file.write_text("data")
+        config_file, test_file = _base_config(tmp_path)
         config_file.write_text(f"""
-zenodo_url: https://zenodo.org
+zenodo_url: https://zenodo.org/api
 access_token: token
 user_agent: TestAgent/1.0
 title: Test
 publication_date: "2024-01-15"
+resource_type:
+  id: dataset
+creators:
+  - person_or_org:
+      type: personal
+      given_name: J
+      family_name: D
+access:
+  record: public
+  files: public
 files:
   - {test_file}
 """)
 
-        mock_draft = {
-            "id": "abc123",
-            "links": {"files": "https://zenodo.org/api/records/abc123/draft/files"},
-        }
-        mock_published = {"id": "published123"}
+        mock_published = {"id": "published123", "links": {"self_html": "https://zenodo.org/records/published123"}}
 
-        with patch("piccione.upload.on_zenodo.create_new_draft", return_value=mock_draft):
+        with patch("piccione.upload.on_zenodo.create_draft", return_value={"id": "abc123"}):
             with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
                 with patch("piccione.upload.on_zenodo.publish_draft", return_value=mock_published) as mock_publish:
-                    result = main(str(config_file), publish=True)
+                    main(str(config_file), publish=True)
 
-        assert result == mock_published
-        mock_publish.assert_called_once_with("https://zenodo.org", "token", "TestAgent/1.0", "abc123")
+        mock_publish.assert_called_once_with("https://zenodo.org/api", "token", "abc123", "TestAgent/1.0")
+
+    def test_community_submission(self, tmp_path):
+        config_file, test_file = _base_config(tmp_path)
+        config_file.write_text(f"""
+zenodo_url: https://zenodo.org/api
+access_token: token
+user_agent: TestAgent/1.0
+community: my-community
+title: Test
+publication_date: "2024-01-15"
+resource_type:
+  id: dataset
+creators:
+  - person_or_org:
+      type: personal
+      given_name: J
+      family_name: D
+access:
+  record: public
+  files: public
+files:
+  - {test_file}
+""")
+
+        with patch("piccione.upload.on_zenodo.create_draft", return_value={"id": "abc123"}):
+            with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
+                with patch("piccione.upload.on_zenodo.submit_community_review") as mock_review:
+                    main(str(config_file))
+
+        mock_review.assert_called_once_with("https://zenodo.org/api", "token", "abc123", "my-community", "TestAgent/1.0")
+
+    def test_community_skipped_on_sandbox(self, tmp_path):
+        config_file, test_file = _base_config(tmp_path)
+        config_file.write_text(f"""
+zenodo_url: https://sandbox.zenodo.org/api
+access_token: token
+user_agent: TestAgent/1.0
+community: my-community
+title: Test
+publication_date: "2024-01-15"
+resource_type:
+  id: dataset
+creators:
+  - person_or_org:
+      type: personal
+      given_name: J
+      family_name: D
+access:
+  record: public
+  files: public
+files:
+  - {test_file}
+""")
+
+        with patch("piccione.upload.on_zenodo.create_draft", return_value={"id": "abc123"}):
+            with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
+                with patch("piccione.upload.on_zenodo.submit_community_review") as mock_review:
+                    main(str(config_file))
+
+        mock_review.assert_not_called()

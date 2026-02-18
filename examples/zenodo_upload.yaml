@@ -1,8 +1,8 @@
-# Zenodo upload configuration
+# Zenodo upload configuration (InvenioRDM format)
 # Obtain your access token from: Account Settings > Applications > Personal access tokens
-# Use https://sandbox.zenodo.org for testing
+# Use https://sandbox.zenodo.org/api for testing
 
-zenodo_url: https://zenodo.org
+zenodo_url: https://zenodo.org/api
 access_token: <YOUR_ZENODO_TOKEN>
 user_agent: piccione/2.0.0
 
@@ -10,31 +10,43 @@ user_agent: piccione/2.0.0
 title: My Dataset
 publication_date: "2024-01-15"
 
-# Resource type (default: dataset)
-upload_type: dataset
-# upload_type values: publication, poster, presentation, dataset, image, video,
-#                     software, lesson, physicalobject, other
+resource_type:
+  id: dataset
 
-# Publisher (default: Zenodo)
-# publisher: My Organization
+access:
+  record: public
+  files: public
 
 creators:
-  - name: Doe, John
-    affiliation: University of Bologna
-    orcid: 0000-0000-0000-0000
-  # Alternative name format: "Given Family" instead of "Family, Given"
-  # - name: Jane Smith
-  #   affiliation: Research Institute
+  - person_or_org:
+      type: personal
+      given_name: John
+      family_name: Doe
+      identifiers:
+        - scheme: orcid
+          identifier: 0000-0000-0000-0000
+    affiliations:
+      - name: University of Bologna
+  # Organization example:
+  # - person_or_org:
+  #     type: organizational
+  #     name: Research Institute
+
+# Optional: create a new version of an existing record
+# record_id: abc12-3defg
+
+# Optional: submit to a community for review (skipped on sandbox)
+# community: my-community
 
 keywords:
   - data
   - research
 
 # License rights (InvenioRDM format)
-# Option 1: Standard license by ID
+# Option 1: standard license by ID
 rights:
   - id: cc-by-4.0
-# Option 2: Custom license with title, description, and link
+# Option 2: custom license
 # rights:
 #   - title: Custom License
 #     description: License terms here
@@ -43,39 +55,41 @@ rights:
 description: |
   Dataset description here.
 
-  Multiple paragraphs supported. URLs are automatically linked:
-  https://example.com
+  Multiple paragraphs supported.
 
   - Bullet lists work too
   - Another item
 
-# notes: |
-#   Additional notes about the dataset.
+# additional_descriptions:
+#   - description: |
+#       Additional notes about the dataset.
+#     type:
+#       id: notes
 
-# method: |
-#   Description of the methodology used.
+# publisher: My Organization
 
 # version: "1.0.0"
 
-# language: eng
-# language values: ISO 639-2 or 639-3 codes (e.g., eng, ita, deu)
+# language:
+#   id: eng
 
 # related_identifiers:
 #   - identifier: 10.1234/example.doi
-#     relation: isSupplementTo
+#     relation_type:
+#       id: issupplementto
+#     scheme: doi
 #   - identifier: https://example.com/related
-#     relation: isDocumentedBy
-# relation values: isCitedBy, cites, isSupplementTo, isSupplementedBy,
-#                  isDescribedBy, isNewVersionOf, isPreviousVersionOf,
-#                  isPartOf, hasPart, isReferencedBy, references,
-#                  isDocumentedBy, isDerivedFrom, isSourceOf,
-#                  isIdenticalTo, isAlternateIdentifier
+#     relation_type:
+#       id: isdocumentedby
+#     scheme: url
 
 # locations:
-#   - place: Bologna, Italy
-#     lat: 44.4949
-#     lon: 11.3426
-#     description: Data collection site
+#   features:
+#     - geometry:
+#         type: Point
+#         coordinates: [11.3426, 44.4949]
+#       place: Bologna, Italy
+#       description: Data collection site
 
 files:
   - /path/to/dataset.zip
