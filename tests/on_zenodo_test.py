@@ -121,17 +121,17 @@ class TestBuildInvenioRdmPayload:
             "resource_type": {"id": "dataset"},
             "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
             "access": {"record": "public", "files": "public"},
-            "keywords": ["data", "research"],
+            "subjects": [{"subject": "data"}, {"subject": "research"}],
             "rights": [{"id": "cc-by-4.0"}],
             "version": "1.0.0",
-            "language": {"id": "eng"},
+            "languages": [{"id": "eng"}],
             "publisher": "Zenodo",
         }
         result = build_inveniordm_payload(config)
-        assert result["metadata"]["keywords"] == ["data", "research"]
+        assert result["metadata"]["subjects"] == [{"subject": "data"}, {"subject": "research"}]
         assert result["metadata"]["rights"] == [{"id": "cc-by-4.0"}]
         assert result["metadata"]["version"] == "1.0.0"
-        assert result["metadata"]["language"] == {"id": "eng"}
+        assert result["metadata"]["languages"] == [{"id": "eng"}]
         assert result["metadata"]["publisher"] == "Zenodo"
 
     def test_files_always_enabled(self):

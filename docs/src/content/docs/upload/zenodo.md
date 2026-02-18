@@ -34,14 +34,13 @@ Create a YAML file with the following fields. Metadata fields follow the [Inveni
 | `community` | Community ID for submission review (skipped on sandbox) |
 | `description` | Plain text (converted to HTML with paragraph and list support) |
 | `additional_descriptions` | List of objects: `description` (plain text, converted to HTML), `type` |
-| `keywords` | List of keyword strings |
-| `subjects` | List of subject objects |
+| `subjects` | List of subject objects (`{subject: keyword}` for free text or `{id: ...}` for controlled vocabulary) |
 | `rights` | List of license objects (`{id: cc-by-4.0}` or custom with `title`, `description`, `link`) |
 | `related_identifiers` | List of InvenioRDM related identifier objects |
 | `contributors` | List of InvenioRDM contributor objects |
 | `dates` | List of InvenioRDM date objects |
 | `version` | Version string |
-| `language` | InvenioRDM language object (e.g., `{id: eng}`) |
+| `languages` | List of InvenioRDM language objects (e.g., `[{id: eng}]`) |
 | `locations` | InvenioRDM locations object |
 | `identifiers` | List of alternate identifier objects |
 | `publisher` | Publisher name |
@@ -76,9 +75,9 @@ creators:
     affiliations:
       - name: University of Bologna
 
-keywords:
-  - data
-  - research
+subjects:
+  - subject: data
+  - subject: research
 
 rights:
   - id: cc-by-4.0

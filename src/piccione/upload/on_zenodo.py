@@ -219,8 +219,8 @@ def build_inveniordm_payload(config: dict) -> dict:
             for d in config["additional_descriptions"]
         ]
 
-    for field in ("keywords", "subjects", "dates", "related_identifiers",
-                   "rights", "contributors", "references", "version", "language",
+    for field in ("subjects", "languages", "dates", "related_identifiers",
+                   "rights", "contributors", "references", "version",
                    "locations", "identifiers", "publisher"):
         if field in config:
             metadata[field] = config[field]
@@ -232,7 +232,7 @@ def build_inveniordm_payload(config: dict) -> dict:
     }
 
 
-def main(config_file: str, publish: bool = False) -> None:
+def main(config_file: str, publish: bool = False) -> dict:
     with open(config_file) as f:
         config = yaml.safe_load(f)
 
@@ -263,10 +263,12 @@ def main(config_file: str, publish: bool = False) -> None:
         submit_community_review(base_url, token, draft_id, community, user_agent)
 
     if publish:
-        publish_draft(base_url, token, draft_id, user_agent)
+        published = publish_draft(base_url, token, draft_id, user_agent)
+        return published
     else:
         print(f"\nDraft ready for review: {base_url.replace('/api', '')}/uploads/{draft_id}")
         print("Run with --publish to publish automatically")
+        return draft
 
 
 if __name__ == "__main__":  # pragma: no cover

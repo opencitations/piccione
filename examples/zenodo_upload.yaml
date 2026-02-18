@@ -38,9 +38,9 @@ creators:
 # Optional: submit to a community for review (skipped on sandbox)
 # community: my-community
 
-keywords:
-  - data
-  - research
+subjects:
+  - subject: data
+  - subject: research
 
 # License rights (InvenioRDM format)
 # Option 1: standard license by ID
@@ -70,8 +70,8 @@ description: |
 
 # version: "1.0.0"
 
-# language:
-#   id: eng
+# languages:
+#   - id: eng
 
 # related_identifiers:
 #   - identifier: 10.1234/example.doi
