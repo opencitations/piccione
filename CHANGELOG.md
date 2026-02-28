@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/opencitations/piccione/compare/v3.0.1...v3.1.0) (2026-02-28)
+
+
+### Features
+
+* **zenodo:** add funding as passthrough field in InvenioRDM payload [release] ([970a065](https://github.com/opencitations/piccione/commit/970a065af7c0b562bc58a3913157cda864ff0191))
+
 ## [3.0.1](https://github.com/opencitations/piccione/compare/v3.0.0...v3.0.1) (2026-02-18)
 
 
