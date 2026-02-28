@@ -38,6 +38,7 @@ Create a YAML file with the following fields. Metadata fields follow the [Inveni
 | `rights` | List of license objects (`{id: cc-by-4.0}` or custom with `title`, `description`, `link`) |
 | `related_identifiers` | List of InvenioRDM related identifier objects |
 | `contributors` | List of InvenioRDM contributor objects |
+| `funding` | List of funding objects (e.g., `[{funder: {id: "00k4n6c32"}, award: {id: "00k4n6c32::101017452"}}]`) |
 | `dates` | List of InvenioRDM date objects |
 | `version` | Version string |
 | `languages` | List of InvenioRDM language objects (e.g., `[{id: eng}]`) |

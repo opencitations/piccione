@@ -126,6 +126,7 @@ class TestBuildInvenioRdmPayload:
             "version": "1.0.0",
             "languages": [{"id": "eng"}],
             "publisher": "Zenodo",
+            "funding": [{"funder": {"id": "00k4n6c32"}, "award": {"id": "00k4n6c32::101017452"}}],
         }
         result = build_inveniordm_payload(config)
         assert result["metadata"]["subjects"] == [{"subject": "data"}, {"subject": "research"}]
@@ -133,6 +134,7 @@ class TestBuildInvenioRdmPayload:
         assert result["metadata"]["version"] == "1.0.0"
         assert result["metadata"]["languages"] == [{"id": "eng"}]
         assert result["metadata"]["publisher"] == "Zenodo"
+        assert result["metadata"]["funding"] == [{"funder": {"id": "00k4n6c32"}, "award": {"id": "00k4n6c32::101017452"}}]
 
     def test_files_always_enabled(self):
         config = {

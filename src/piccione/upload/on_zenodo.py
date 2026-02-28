@@ -220,8 +220,8 @@ def build_inveniordm_payload(config: dict) -> dict:
         ]
 
     for field in ("subjects", "languages", "dates", "related_identifiers",
-                   "rights", "contributors", "references", "version",
-                   "locations", "identifiers", "publisher"):
+                   "rights", "contributors", "funding", "references",
+                   "version", "locations", "identifiers", "publisher"):
         if field in config:
             metadata[field] = config[field]
 
