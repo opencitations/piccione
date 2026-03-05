@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/opencitations/piccione/compare/v3.1.0...v3.1.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* **zenodo:** handle InvenioRDM payload format and skip community review for new versions [release] ([b7eef0b](https://github.com/opencitations/piccione/commit/b7eef0b5fb5aa5e131505053e97beca3e33ce401))
+
 # [3.1.0](https://github.com/opencitations/piccione/compare/v3.0.1...v3.1.0) (2026-02-28)
 
 
