@@ -83,6 +83,7 @@ class TestBuildInvenioRdmPayload:
                 "publication_date": "2024-01-15",
                 "resource_type": {"id": "dataset"},
                 "creators": [{"person_or_org": {"type": "personal", "given_name": "John", "family_name": "Doe"}}],
+                "publisher": "Zenodo",
             },
         }
 
@@ -146,6 +147,44 @@ class TestBuildInvenioRdmPayload:
         }
         result = build_inveniordm_payload(config)
         assert result["files"] == {"enabled": True}
+
+    def test_references_converted_to_objects(self):
+        config = {
+            "title": "Test",
+            "publication_date": "2024-01-15",
+            "resource_type": {"id": "dataset"},
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
+            "access": {"record": "public", "files": "public"},
+            "references": ["First reference", "Second reference"],
+        }
+        result = build_inveniordm_payload(config)
+        assert result["metadata"]["references"] == [
+            {"reference": "First reference"},
+            {"reference": "Second reference"},
+        ]
+
+    def test_references_already_objects_unchanged(self):
+        config = {
+            "title": "Test",
+            "publication_date": "2024-01-15",
+            "resource_type": {"id": "dataset"},
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
+            "access": {"record": "public", "files": "public"},
+            "references": [{"reference": "Already object"}],
+        }
+        result = build_inveniordm_payload(config)
+        assert result["metadata"]["references"] == [{"reference": "Already object"}]
+
+    def test_default_publisher_is_zenodo(self):
+        config = {
+            "title": "Test",
+            "publication_date": "2024-01-15",
+            "resource_type": {"id": "dataset"},
+            "creators": [{"person_or_org": {"type": "personal", "given_name": "J", "family_name": "D"}}],
+            "access": {"record": "public", "files": "public"},
+        }
+        result = build_inveniordm_payload(config)
+        assert result["metadata"]["publisher"] == "Zenodo"
 
 
 class TestPublishDraft:
@@ -467,5 +506,38 @@ files:
             with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
                 with patch("piccione.upload.on_zenodo.submit_community_review") as mock_review:
                     main(str(config_file))
+
+        mock_review.assert_not_called()
+
+    def test_community_skipped_for_new_version(self, tmp_path):
+        config_file, test_file = _base_config(tmp_path)
+        config_file.write_text(f"""
+zenodo_url: https://zenodo.org/api
+access_token: token
+user_agent: TestAgent/1.0
+record_id: existing-123
+community: my-community
+title: Test
+publication_date: "2024-01-15"
+resource_type:
+  id: dataset
+creators:
+  - person_or_org:
+      type: personal
+      given_name: J
+      family_name: D
+access:
+  record: public
+  files: public
+files:
+  - {test_file}
+""")
+
+        with patch("piccione.upload.on_zenodo.create_new_version", return_value={"id": "new-456"}):
+            with patch("piccione.upload.on_zenodo.delete_draft_files"):
+                with patch("piccione.upload.on_zenodo.update_draft_metadata"):
+                    with patch("piccione.upload.on_zenodo.upload_file_with_retry"):
+                        with patch("piccione.upload.on_zenodo.submit_community_review") as mock_review:
+                            main(str(config_file))
 
         mock_review.assert_not_called()

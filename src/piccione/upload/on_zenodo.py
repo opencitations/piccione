@@ -162,6 +162,9 @@ def submit_community_review(base_url: str, token: str, record_id: str, community
         headers=headers,
         json={"receiver": {"community": community_id}, "type": "community-submission"},
     )
+    if not response.ok:
+        print(f"Error submitting community review: {response.status_code}")
+        print(f"Response: {response.text}")
     response.raise_for_status()
     response = requests.post(
         f"{base_url}/records/{record_id}/draft/actions/submit-review",
@@ -212,18 +215,23 @@ def build_inveniordm_payload(config: dict) -> dict:
 
     if "additional_descriptions" in config:
         metadata["additional_descriptions"] = [
-            {
-                "description": text_to_html(d["description"]),
-                "type": d["type"],
-            }
+            {"description": text_to_html(d["description"]), "type": d["type"]}
             for d in config["additional_descriptions"]
         ]
 
     for field in ("subjects", "languages", "dates", "related_identifiers",
-                   "rights", "contributors", "funding", "references",
-                   "version", "locations", "identifiers", "publisher"):
+                   "rights", "contributors", "funding",
+                   "version", "locations", "identifiers"):
         if field in config:
             metadata[field] = config[field]
+
+    metadata["publisher"] = config.get("publisher", "Zenodo")
+
+    if "references" in config:
+        metadata["references"] = [
+            {"reference": ref} if isinstance(ref, str) else ref
+            for ref in config["references"]
+        ]
 
     return {
         "access": config["access"],
@@ -259,7 +267,7 @@ def main(config_file: str, publish: bool = False) -> dict:
     for file_path in config["files"]:
         upload_file_with_retry(base_url, draft_id, file_path, token, user_agent)
 
-    if community and "sandbox" not in base_url:
+    if community and "sandbox" not in base_url and not record_id:
         submit_community_review(base_url, token, draft_id, community, user_agent)
 
     if publish:
