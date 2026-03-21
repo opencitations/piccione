@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # Zenodo upload configuration (InvenioRDM format)
 # Obtain your access token from: Account Settings > Applications > Personal access tokens
 # Use https://sandbox.zenodo.org/api for testing

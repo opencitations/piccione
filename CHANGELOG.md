@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 ## [3.1.1](https://github.com/opencitations/piccione/compare/v3.1.0...v3.1.1) (2026-03-05)
 
 

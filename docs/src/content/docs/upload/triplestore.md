@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 title: Triplestore
 description: Execute SPARQL updates on a triplestore endpoint
 ---

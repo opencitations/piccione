@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 title: Getting started
 description: How to install and use piccione
 ---

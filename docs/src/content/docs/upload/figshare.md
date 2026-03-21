@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 title: Figshare
 description: Upload files to Figshare articles
 ---

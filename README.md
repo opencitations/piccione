@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Piccione
 
 <p align="center">
@@ -9,6 +15,7 @@ Pronounced *Py-ccione*.
 [![Run tests](https://github.com/opencitations/piccione/actions/workflows/tests.yml/badge.svg)](https://github.com/opencitations/piccione/actions/workflows/tests.yml)
 [![Coverage](https://opencitations.github.io/piccione/coverage/coverage-badge.svg)](https://opencitations.github.io/piccione/coverage/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![REUSE](https://github.com/opencitations/piccione/actions/workflows/reuse.yml/badge.svg)](https://github.com/opencitations/piccione/actions/workflows/reuse.yml)
 
 **PICCIONE** - Python Interface for Cloud Content Ingest and Outbound Network Export
 

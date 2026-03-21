@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 title: Zenodo
 description: Upload files to Zenodo depositions
 ---

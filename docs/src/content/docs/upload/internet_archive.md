@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 title: Internet Archive
 description: Upload files to Internet Archive items
 ---
