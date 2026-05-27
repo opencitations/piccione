@@ -57,13 +57,15 @@ def issue_request(method, url, token, data=None, binary=False):
             time.sleep(wait)
         except HTTPError as e:
             print(f"[ERROR] HTTP error: {e}")
-            print("Body:", response.text)
+            if e.response is not None:
+                print("Body:", e.response.text)
             raise
 
 
 def upload_parts(file_info, file_path, token):
     url = file_info["upload_url"]
     result = issue_request(method="GET", url=url, token=token)
+    assert isinstance(result, dict)
     print(f"\nUploading {os.path.basename(file_path)}:")
 
     total_size = sum(

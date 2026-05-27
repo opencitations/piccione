@@ -2,10 +2,13 @@
 #
 # SPDX-License-Identifier: ISC
 
+from __future__ import annotations
+
 import argparse
 import json
 import time
 from contextlib import contextmanager
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,6 +26,47 @@ from rich.progress import (
 console = Console()
 
 
+@dataclass
+class FileMetadata:
+    size: int
+    modified: str
+    etag: str
+
+
+@dataclass
+class FolderNode:
+    subfolders: dict[str, FolderNode] = field(default_factory=dict)
+    files: dict[str, FileMetadata] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for name, child in self.subfolders.items():
+            result[name] = child.to_dict()
+        if self.files:
+            result["_files"] = {
+                name: {"size": meta.size, "modified": meta.modified, "etag": meta.etag}
+                for name, meta in self.files.items()
+            }
+        return result
+
+    @staticmethod
+    def from_dict(data: dict[str, object]) -> FolderNode:
+        node = FolderNode()
+        for key, value in data.items():
+            assert isinstance(value, dict)
+            if key == "_files":
+                for filename, meta_raw in value.items():
+                    assert isinstance(meta_raw, dict)
+                    size, modified, etag = meta_raw["size"], meta_raw["modified"], meta_raw["etag"]
+                    assert isinstance(size, int)
+                    assert isinstance(modified, str)
+                    assert isinstance(etag, str)
+                    node.files[filename] = FileMetadata(size=size, modified=modified, etag=etag)
+            else:
+                node.subfolders[key] = FolderNode.from_dict(value)
+        return node
+
+
 def load_config(config_path):
     with open(config_path) as f:
         return yaml.safe_load(f)
@@ -32,15 +76,12 @@ def get_site_relative_url(site_url):
     return "/" + "/".join(site_url.rstrip("/").split("/")[3:])
 
 
-def sort_structure(obj):
-    if isinstance(obj, dict):
-        sorted_dict = {}
-        for key in sorted(obj.keys(), key=lambda k: (k == "_files", k)):
-            sorted_dict[key] = sort_structure(obj[key])
-        return sorted_dict
-    elif isinstance(obj, list):
-        return sorted(obj)
-    return obj
+def sort_structure(node: FolderNode) -> FolderNode:
+    sorted_subfolders = {
+        k: sort_structure(v) for k, v in sorted(node.subfolders.items())
+    }
+    sorted_files = dict(sorted(node.files.items()))
+    return FolderNode(subfolders=sorted_subfolders, files=sorted_files)
 
 
 def request_with_retry(client, url, max_retries=5):  # pragma: no cover
@@ -82,8 +123,8 @@ def get_folder_contents(client, site_url, folder_path):
     return folders_data, files_data
 
 
-def get_folder_structure(client, site_url, folder_path):
-    result = {}
+def get_folder_structure(client, site_url, folder_path) -> FolderNode:
+    node = FolderNode()
 
     folders, files = get_folder_contents(client, site_url, folder_path)
 
@@ -91,20 +132,16 @@ def get_folder_structure(client, site_url, folder_path):
         name = folder["Name"]
         if name.startswith("_") or name == "Forms":
             continue
-        subfolder_path = folder["ServerRelativeUrl"]
-        result[name] = get_folder_structure(client, site_url, subfolder_path)
+        node.subfolders[name] = get_folder_structure(client, site_url, folder["ServerRelativeUrl"])
 
-    if files:
-        result["_files"] = {
-            f["Name"]: {
-                "size": int(f["Length"]),
-                "modified": f["TimeLastModified"],
-                "etag": f["ETag"],
-            }
-            for f in files
-        }
+    for f in files:
+        node.files[f["Name"]] = FileMetadata(
+            size=int(f["Length"]),
+            modified=f["TimeLastModified"],
+            etag=f["ETag"],
+        )
 
-    return result
+    return node
 
 
 def process_folder(client, folder_path, site_url, progress, task_id):
@@ -127,39 +164,37 @@ def extract_structure(client, site_url, folders, progress):
         result = process_folder(client, folder_path, site_url, progress, task_id)
         results.append(result)
 
-    structure = {name: folder_structure for name, _, folder_structure in results}
+    structure = {name: sort_structure(folder_structure) for name, _, folder_structure in sorted(results)}
     folder_paths = {name: path for name, path, _ in results}
-    return sort_structure(structure), folder_paths
+    return structure, folder_paths
 
 
-def collect_files_from_structure(structure, folder_paths):
-    files = []
+def collect_files_from_structure(structure: dict[str, FolderNode], folder_paths: dict[str, str]):
+    files: list[tuple[str, str, FileMetadata]] = []
 
-    def traverse(node, current_path, base_server_path):
-        for key, value in node.items():
-            if key == "_files":
-                for filename, metadata in value.items():
-                    server_path = f"{base_server_path}/{current_path}/{filename}" if current_path else f"{base_server_path}/{filename}"
-                    local_path = f"{current_path}/{filename}" if current_path else filename
-                    files.append((server_path, local_path, metadata))
-            elif isinstance(value, dict):
-                new_path = f"{current_path}/{key}" if current_path else key
-                traverse(value, new_path, base_server_path)
+    def traverse(node: FolderNode, current_path: str, base_server_path: str):
+        for filename, metadata in node.files.items():
+            server_path = f"{base_server_path}/{current_path}/{filename}" if current_path else f"{base_server_path}/{filename}"
+            local_path = f"{current_path}/{filename}" if current_path else filename
+            files.append((server_path, local_path, metadata))
+        for name, child in node.subfolders.items():
+            new_path = f"{current_path}/{name}" if current_path else name
+            traverse(child, new_path, base_server_path)
 
-    for folder_name, folder_structure in structure.items():
+    for folder_name, folder_node in structure.items():
         base_path = folder_paths[folder_name]
-        traverse({folder_name: folder_structure}, "", base_path.rsplit("/", 1)[0])
+        traverse(folder_node, folder_name, base_path.rsplit("/", 1)[0])
 
     return files
 
 
-def should_download(remote_meta, local_path):
+def should_download(remote_meta: FileMetadata, local_path: Path) -> bool:
     if not local_path.exists():
         return True
     local_size = local_path.stat().st_size
     local_mtime = datetime.fromtimestamp(local_path.stat().st_mtime, tz=timezone.utc)
-    remote_mtime = datetime.fromisoformat(remote_meta["modified"].replace("Z", "+00:00"))
-    return local_size != remote_meta["size"] or local_mtime < remote_mtime
+    remote_mtime = datetime.fromisoformat(remote_meta.modified.replace("Z", "+00:00"))
+    return local_size != remote_meta.size or local_mtime < remote_mtime
 
 
 def download_file(client, site_url, file_server_relative_url, local_path):
@@ -253,7 +288,7 @@ def main():  # pragma: no cover
         console.print("[bold blue][Phase 1][/] Loading structure from file...")
         with open(args.structure) as f:
             data = json.load(f)
-        structure = data["structure"]
+        structure = {name: FolderNode.from_dict(d) for name, d in data["structure"].items()}
         folder_paths = data["folder_paths"]
         console.print(f"Loaded structure from {args.structure}")
     else:
@@ -278,7 +313,7 @@ def main():  # pragma: no cover
         output = {
             "site_url": site_url,
             "extracted_at": datetime.now(timezone.utc).isoformat(),
-            "structure": structure,
+            "structure": {name: node.to_dict() for name, node in structure.items()},
             "folder_paths": folder_paths,
         }
         with open(structure_file, "w") as f:

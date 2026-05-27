@@ -39,8 +39,8 @@ def upload_sparql_updates(
     if redis_host is not None:
         cache_manager = CacheManager(
             redis_host=redis_host,
-            redis_port=redis_port,
-            redis_db=redis_db,
+            redis_port=redis_port if redis_port is not None else 6379,
+            redis_db=redis_db if redis_db is not None else 4,
         )
 
     all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]

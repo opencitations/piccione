@@ -2,8 +2,10 @@
 #
 # SPDX-License-Identifier: ISC
 
-import yaml
 import argparse
+
+import requests
+import yaml
 from internetarchive import upload
 
 
@@ -30,7 +32,8 @@ def upload_files(config_path):
         validate_identifier=True,
     )
 
-    if result[0].status_code == 200:
+    first_result = result[0]
+    if isinstance(first_result, requests.Response) and first_result.status_code == 200:
         print("Upload completed successfully!")
     else:
         print("Upload failed.")

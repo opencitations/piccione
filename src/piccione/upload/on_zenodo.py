@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 import yaml
-from rich.progress import Progress, BarColumn, DownloadColumn, TransferSpeedColumn, TimeRemainingColumn
+from rich.progress import Progress, BarColumn, DownloadColumn, TransferSpeedColumn, TimeRemainingColumn, TaskID
 
 
 def get_headers(token: str, user_agent: str, content_type: str | None = None) -> dict[str, str]:
@@ -22,7 +22,7 @@ def get_headers(token: str, user_agent: str, content_type: str | None = None) ->
 
 
 class ProgressFileWrapper:
-    def __init__(self, file_path: str, progress: Progress, task_id: int):
+    def __init__(self, file_path: str, progress: Progress, task_id: TaskID):
         self.file_path = file_path
         self.file_size = Path(file_path).stat().st_size
         self.fp = open(file_path, "rb")

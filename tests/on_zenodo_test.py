@@ -7,6 +7,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
+from rich.progress import TaskID
+
 from piccione.upload.on_zenodo import (
     ProgressFileWrapper,
     build_inveniordm_payload,
@@ -23,7 +25,7 @@ class TestProgressFileWrapper:
         test_file.write_text("hello")
 
         mock_progress = MagicMock()
-        wrapper = ProgressFileWrapper(str(test_file), mock_progress, 1)
+        wrapper = ProgressFileWrapper(str(test_file), mock_progress, TaskID(1))
         data = wrapper.read(3)
         wrapper.close()
 
@@ -35,7 +37,7 @@ class TestProgressFileWrapper:
         test_file.write_text("hello")
 
         mock_progress = MagicMock()
-        wrapper = ProgressFileWrapper(str(test_file), mock_progress, 1)
+        wrapper = ProgressFileWrapper(str(test_file), mock_progress, TaskID(1))
         size = len(wrapper)
         wrapper.close()
 
@@ -46,7 +48,7 @@ class TestProgressFileWrapper:
         test_file.write_text("hello")
 
         mock_progress = MagicMock()
-        wrapper = ProgressFileWrapper(str(test_file), mock_progress, 1)
+        wrapper = ProgressFileWrapper(str(test_file), mock_progress, TaskID(1))
         wrapper.close()
 
         assert wrapper.fp.closed

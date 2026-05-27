@@ -10,6 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from piccione.download.from_sharepoint import (
+    FileMetadata,
+    FolderNode,
     collect_all_remote_paths,
     collect_files_from_structure,
     download_all_files,
@@ -106,20 +108,40 @@ class TestGetSiteRelativeUrl:
 
 
 class TestSortStructure:
-    def test_sorts_dict_keys_alphabetically_with_files_last(self):
-        input_data = {"_files": ["a.txt"], "zebra": {}, "apple": {}}
-        result = sort_structure(input_data)
-        assert list(result.keys()) == ["apple", "zebra", "_files"]
+    def test_sorts_subfolders_alphabetically(self):
+        node = FolderNode(
+            subfolders={
+                "zebra": FolderNode(),
+                "apple": FolderNode(),
+                "mango": FolderNode(),
+            },
+        )
+        result = sort_structure(node)
+        assert list(result.subfolders.keys()) == ["apple", "mango", "zebra"]
 
-    def test_sorts_list_elements(self):
-        input_data = ["zebra", "apple", "mango"]
-        result = sort_structure(input_data)
-        assert result == ["apple", "mango", "zebra"]
+    def test_sorts_files_alphabetically(self):
+        node = FolderNode(
+            files={
+                "z.txt": FileMetadata(size=1, modified="2025-01-01T00:00:00Z", etag='"A"'),
+                "a.txt": FileMetadata(size=2, modified="2025-01-01T00:00:00Z", etag='"B"'),
+            },
+        )
+        result = sort_structure(node)
+        assert list(result.files.keys()) == ["a.txt", "z.txt"]
 
-    def test_returns_primitive_unchanged(self):
-        assert sort_structure("hello") == "hello"
-        assert sort_structure(42) == 42
-        assert sort_structure(None) is None
+    def test_sorts_nested_subfolders_recursively(self):
+        node = FolderNode(
+            subfolders={
+                "parent": FolderNode(
+                    subfolders={
+                        "z_child": FolderNode(),
+                        "a_child": FolderNode(),
+                    },
+                ),
+            },
+        )
+        result = sort_structure(node)
+        assert list(result.subfolders["parent"].subfolders.keys()) == ["a_child", "z_child"]
 
 
 class TestGetFolderContents:
@@ -147,7 +169,7 @@ class TestGetFolderStructure:
         result = get_folder_structure(mock_client, site_url, item_path)
 
         expected = sharepoint_fixture["expected_item_structure"]
-        assert result == expected
+        assert result.to_dict() == expected
 
     def test_filters_system_folders(self, sharepoint_fixture):
         site_url = sharepoint_fixture["site_url"]
@@ -172,12 +194,14 @@ class TestGetFolderStructure:
         mock_client = create_mock_client(responses_with_system)
         result = get_folder_structure(mock_client, site_url, test_path)
 
-        assert "_private" not in result
-        assert "Forms" not in result
-        assert "valid" in result
-        assert result["valid"]["_files"] == {"test.txt": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{X1}\""}}
+        assert "_private" not in result.subfolders
+        assert "Forms" not in result.subfolders
+        assert "valid" in result.subfolders
+        assert result.subfolders["valid"].files == {
+            "test.txt": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{X1}"')
+        }
 
-    def test_empty_folder_has_no_files_key(self, sharepoint_fixture):
+    def test_empty_folder_returns_empty_node(self, sharepoint_fixture):
         site_url = sharepoint_fixture["site_url"]
 
         responses = dict(sharepoint_fixture["responses"])
@@ -188,8 +212,7 @@ class TestGetFolderStructure:
         mock_client = create_mock_client(responses)
         result = get_folder_structure(mock_client, site_url, test_path)
 
-        assert "_files" not in result
-        assert result == {}
+        assert result == FolderNode()
 
 
 class TestProcessFolder:
@@ -209,8 +232,8 @@ class TestProcessFolder:
 
         assert folder_name == "Sala1"
         assert returned_path == folder_path
-        assert "S1-01-CNR_CartaNautica" in structure
-        assert structure == sharepoint_fixture["expected_sala1_structure"]
+        assert "S1-01-CNR_CartaNautica" in structure.subfolders
+        assert structure.to_dict() == sharepoint_fixture["expected_sala1_structure"]
 
         mock_progress.update.assert_called()
         mock_progress.advance.assert_called_once_with(mock_task_id)
@@ -231,8 +254,9 @@ class TestExtractStructure:
         assert "Sala1" in result
         expected_full_path = f"{sharepoint_fixture['site_relative_url']}{relative_folder}"
         assert folder_paths["Sala1"] == expected_full_path
-        item_keys = list(result["Sala1"]["S1-01-CNR_CartaNautica"].keys())
-        assert item_keys == sorted(item_keys, key=lambda k: (k == "_files", k))
+        carta = result["Sala1"].subfolders["S1-01-CNR_CartaNautica"]
+        subfolder_keys = list(carta.subfolders.keys())
+        assert subfolder_keys == sorted(subfolder_keys)
 
     def test_handles_folder_without_leading_slash(self, sharepoint_fixture):
         site_url = sharepoint_fixture["site_url"]
@@ -253,17 +277,17 @@ class TestExtractStructure:
 class TestCollectFilesFromStructure:
     def test_extracts_files_with_correct_paths(self):
         structure = {
-            "Sala1": {
-                "S1-01-Item": {
-                    "raw": {"_files": {
-                        "photo1.jpg": {"size": 1000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
-                        "photo2.jpg": {"size": 2000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
-                    }},
-                    "dcho": {"_files": {
-                        "model.obj": {"size": 3000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C}\""},
-                    }},
-                }
-            }
+            "Sala1": FolderNode(subfolders={
+                "S1-01-Item": FolderNode(subfolders={
+                    "raw": FolderNode(files={
+                        "photo1.jpg": FileMetadata(size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                        "photo2.jpg": FileMetadata(size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
+                    }),
+                    "dcho": FolderNode(files={
+                        "model.obj": FileMetadata(size=3000, modified="2025-01-15T10:00:00Z", etag='"{C}"'),
+                    }),
+                }),
+            }),
         }
         folder_paths = {"Sala1": "/sites/test/Shared Documents/Sala1"}
 
@@ -273,35 +297,37 @@ class TestCollectFilesFromStructure:
             (
                 "/sites/test/Shared Documents/Sala1/S1-01-Item/raw/photo1.jpg",
                 "Sala1/S1-01-Item/raw/photo1.jpg",
-                {"size": 1000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
+                FileMetadata(size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
             ),
             (
                 "/sites/test/Shared Documents/Sala1/S1-01-Item/raw/photo2.jpg",
                 "Sala1/S1-01-Item/raw/photo2.jpg",
-                {"size": 2000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
+                FileMetadata(size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
             ),
             (
                 "/sites/test/Shared Documents/Sala1/S1-01-Item/dcho/model.obj",
                 "Sala1/S1-01-Item/dcho/model.obj",
-                {"size": 3000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{C}\""},
+                FileMetadata(size=3000, modified="2025-01-15T10:00:00Z", etag='"{C}"'),
             ),
         ]
         assert result == expected
 
     def test_handles_nested_folders(self):
         structure = {
-            "Sala1": {
-                "S1-01-Item": {
-                    "rawp": {
-                        "materials": {"_files": {
-                            "texture.png": {"size": 1000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
-                        }},
-                        "_files": {
-                            "model.obj": {"size": 2000, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
+            "Sala1": FolderNode(subfolders={
+                "S1-01-Item": FolderNode(subfolders={
+                    "rawp": FolderNode(
+                        subfolders={
+                            "materials": FolderNode(files={
+                                "texture.png": FileMetadata(size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                            }),
                         },
-                    }
-                }
-            }
+                        files={
+                            "model.obj": FileMetadata(size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
+                        },
+                    ),
+                }),
+            }),
         }
         folder_paths = {"Sala1": "/sites/test/Shared Documents/Sala1"}
 
@@ -316,8 +342,14 @@ class TestCollectFilesFromStructure:
         result = collect_files_from_structure({}, {})
         assert result == []
 
-    def test_folder_without_files_key(self):
-        structure = {"Sala1": {"S1-01-Item": {"raw": {}}}}
+    def test_folder_without_files(self):
+        structure = {
+            "Sala1": FolderNode(subfolders={
+                "S1-01-Item": FolderNode(subfolders={
+                    "raw": FolderNode(),
+                }),
+            }),
+        }
         folder_paths = {"Sala1": "/docs/Sala1"}
         result = collect_files_from_structure(structure, folder_paths)
         assert result == []
@@ -378,34 +410,38 @@ def mock_progress():
 class TestShouldDownload:
     def test_returns_true_when_file_does_not_exist(self, tmp_path):
         local_path = tmp_path / "nonexistent.txt"
-        remote_meta = {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""}
+        remote_meta = FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"')
         assert should_download(remote_meta, local_path) is True
 
     def test_returns_true_when_size_differs(self, tmp_path):
         local_path = tmp_path / "file.txt"
         local_path.write_bytes(b"x" * 50)
-        remote_meta = {"size": 100, "modified": "2020-01-01T10:00:00Z", "etag": "\"{A}\""}
+        remote_meta = FileMetadata(size=100, modified="2020-01-01T10:00:00Z", etag='"{A}"')
         assert should_download(remote_meta, local_path) is True
 
     def test_returns_true_when_remote_is_newer(self, tmp_path):
         local_path = tmp_path / "file.txt"
         local_path.write_bytes(b"x" * 100)
-        remote_meta = {"size": 100, "modified": "2099-01-01T10:00:00Z", "etag": "\"{A}\""}
+        remote_meta = FileMetadata(size=100, modified="2099-01-01T10:00:00Z", etag='"{A}"')
         assert should_download(remote_meta, local_path) is True
 
     def test_returns_false_when_same_size_and_local_is_newer(self, tmp_path):
         local_path = tmp_path / "file.txt"
         local_path.write_bytes(b"x" * 100)
-        remote_meta = {"size": 100, "modified": "2020-01-01T10:00:00Z", "etag": "\"{A}\""}
+        remote_meta = FileMetadata(size=100, modified="2020-01-01T10:00:00Z", etag='"{A}"')
         assert should_download(remote_meta, local_path) is False
 
 
 class TestCollectAllRemotePaths:
     def test_collects_paths(self):
         structure = {
-            "Sala1": {"item": {"raw": {"_files": {
-                "photo.jpg": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
-            }}}}
+            "Sala1": FolderNode(subfolders={
+                "item": FolderNode(subfolders={
+                    "raw": FolderNode(files={
+                        "photo.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                    }),
+                }),
+            }),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
         result = collect_all_remote_paths(structure, folder_paths)
@@ -443,9 +479,15 @@ class TestRemoveOrphans:
 
 class TestDownloadAllFiles:
     def test_skips_unchanged_files(self, tmp_path, mock_progress):
-        structure = {"Sala1": {"item": {"raw": {"_files": {
-            "existing.jpg": {"size": 12, "modified": "2020-01-01T10:00:00Z", "etag": "\"{A}\""},
-        }}}}}
+        structure = {
+            "Sala1": FolderNode(subfolders={
+                "item": FolderNode(subfolders={
+                    "raw": FolderNode(files={
+                        "existing.jpg": FileMetadata(size=12, modified="2020-01-01T10:00:00Z", etag='"{A}"'),
+                    }),
+                }),
+            }),
+        }
         folder_paths = {"Sala1": "/docs/Sala1"}
 
         existing = tmp_path / "Sala1" / "item" / "raw" / "existing.jpg"
@@ -463,10 +505,14 @@ class TestDownloadAllFiles:
 
     def test_continues_on_error(self, tmp_path, mock_progress):
         structure = {
-            "Sala1": {"item": {"raw": {"_files": {
-                "fail.jpg": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
-                "success.jpg": {"size": 100, "modified": "2025-01-15T10:00:00Z", "etag": "\"{B}\""},
-            }}}}
+            "Sala1": FolderNode(subfolders={
+                "item": FolderNode(subfolders={
+                    "raw": FolderNode(files={
+                        "fail.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                        "success.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
+                    }),
+                }),
+            }),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
 
@@ -498,9 +544,15 @@ class TestDownloadAllFiles:
         assert success_file.exists()
 
     def test_downloads_files(self, tmp_path, mock_progress):
-        structure = {"Sala1": {"item": {"raw": {"_files": {
-            "photo.jpg": {"size": 1024, "modified": "2025-01-15T10:00:00Z", "etag": "\"{A}\""},
-        }}}}}
+        structure = {
+            "Sala1": FolderNode(subfolders={
+                "item": FolderNode(subfolders={
+                    "raw": FolderNode(files={
+                        "photo.jpg": FileMetadata(size=1024, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                    }),
+                }),
+            }),
+        }
         folder_paths = {"Sala1": "/docs/Sala1"}
 
         mock_response = MagicMock()
