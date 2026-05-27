@@ -159,24 +159,34 @@ def update_draft_metadata(base_url: str, token: str, record_id: str, metadata: d
     print(f"Metadata updated for draft {record_id}")
 
 
-def submit_community_review(base_url: str, token: str, record_id: str, community_id: str, user_agent: str) -> None:
+def _resolve_community_id(base_url: str, community_slug: str) -> str:
+    response = requests.get(f"{base_url}/communities/{community_slug}")
+    response.raise_for_status()
+    return response.json()["id"]
+
+
+def submit_community_review(base_url: str, token: str, record_id: str, community_slug: str, user_agent: str) -> None:
     headers = get_headers(token, user_agent, "application/json")
+    community_uuid = _resolve_community_id(base_url, community_slug)
     response = requests.put(
         f"{base_url}/records/{record_id}/draft/review",
         headers=headers,
-        json={"receiver": {"community": community_id}, "type": "community-submission"},
+        json={"receiver": {"community": community_uuid}, "type": "community-submission"},
     )
     if not response.ok:
-        print(f"Error submitting community review: {response.status_code}")
+        print(f"Error creating community review: {response.status_code}")
         print(f"Response: {response.text}")
     response.raise_for_status()
     response = requests.post(
         f"{base_url}/records/{record_id}/draft/actions/submit-review",
         headers=headers,
-        json={"body": "", "format": "html"},
+        json={"payload": {"content": "Automated submission", "format": "html"}},
     )
+    if not response.ok:
+        print(f"Error submitting community review: {response.status_code}")
+        print(f"Response: {response.text}")
     response.raise_for_status()
-    print(f"Submitted review for community {community_id}")
+    print(f"Submitted review for community {community_slug}")
 
 
 def publish_draft(base_url: str, token: str, record_id: str, user_agent: str) -> dict:
