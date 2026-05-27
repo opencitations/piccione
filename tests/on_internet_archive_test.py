@@ -2,13 +2,14 @@
 #
 # SPDX-License-Identifier: ISC
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from piccione.upload.on_internet_archive import upload_files
 
 
 class TestUploadFiles:
-    def test_successful_upload(self, tmp_path):
+    def test_successful_upload(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("""
 identifier: test-item-123
@@ -33,7 +34,7 @@ secret_key: my_secret_key
             files=["/path/to/file1.txt", "/path/to/file2.txt"],
             metadata={"title": "Test Item", "creator": "Test Author"},
             access_key="my_access_key",
-            secret_key="my_secret_key",
+            secret_key="my_secret_key",  # noqa: S106
             verbose=True,
             verify=True,
             retries=3,
@@ -41,7 +42,7 @@ secret_key: my_secret_key
             validate_identifier=True,
         )
 
-    def test_failed_upload_prints_message(self, tmp_path, capsys):
+    def test_failed_upload_prints_message(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("""
 identifier: test-item
@@ -56,8 +57,10 @@ secret_key: secret
         mock_response = MagicMock()
         mock_response.status_code = 500
 
-        with patch("piccione.upload.on_internet_archive.upload", return_value=[mock_response]):
+        with (
+            patch("piccione.upload.on_internet_archive.upload", return_value=[mock_response]),
+            patch("piccione.upload.on_internet_archive.console") as mock_console,
+        ):
             upload_files(str(config_file))
 
-        captured = capsys.readouterr()
-        assert captured.out == "Upload failed.\n"
+        mock_console.print.assert_called_with("Upload failed.")

@@ -11,6 +11,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING, TypedDict, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 import httpx
 import yaml
@@ -18,12 +22,32 @@ from rich.console import Console
 from rich.progress import (
     BarColumn,
     Progress,
+    TaskID,
     TaskProgressColumn,
     TextColumn,
     TimeRemainingColumn,
 )
 
 console = Console()
+
+
+class SharePointFolder(TypedDict):
+    Name: str
+    ServerRelativeUrl: str
+
+
+class SharePointFile(TypedDict):
+    Name: str
+    Length: str
+    TimeLastModified: str
+    ETag: str
+
+
+class SharePointConfig(TypedDict):
+    site_url: str
+    fedauth: str
+    rtfa: str
+    folders: list[str]
 
 
 @dataclass
@@ -53,26 +77,36 @@ class FolderNode:
     def from_dict(data: dict[str, object]) -> FolderNode:
         node = FolderNode()
         for key, value in data.items():
-            assert isinstance(value, dict)
+            if not isinstance(value, dict):
+                msg = f"Expected dict for key {key!r}, got {type(value).__name__}"
+                raise TypeError(msg)
             if key == "_files":
                 for filename, meta_raw in value.items():
-                    assert isinstance(meta_raw, dict)
+                    if not isinstance(meta_raw, dict):
+                        msg = f"Expected dict for file {filename!r}, got {type(meta_raw).__name__}"
+                        raise TypeError(msg)
                     size, modified, etag = meta_raw["size"], meta_raw["modified"], meta_raw["etag"]
-                    assert isinstance(size, int)
-                    assert isinstance(modified, str)
-                    assert isinstance(etag, str)
+                    if not isinstance(size, int):
+                        msg = f"Expected int for size of {filename!r}, got {type(size).__name__}"
+                        raise TypeError(msg)
+                    if not isinstance(modified, str):
+                        msg = f"Expected str for modified of {filename!r}, got {type(modified).__name__}"
+                        raise TypeError(msg)
+                    if not isinstance(etag, str):
+                        msg = f"Expected str for etag of {filename!r}, got {type(etag).__name__}"
+                        raise TypeError(msg)
                     node.files[filename] = FileMetadata(size=size, modified=modified, etag=etag)
             else:
                 node.subfolders[key] = FolderNode.from_dict(value)
         return node
 
 
-def load_config(config_path):
-    with open(config_path) as f:
-        return yaml.safe_load(f)
+def load_config(config_path: str | Path) -> SharePointConfig:
+    with Path(config_path).open() as f:
+        return cast("SharePointConfig", yaml.safe_load(f))
 
 
-def get_site_relative_url(site_url):
+def get_site_relative_url(site_url: str) -> str:
     return "/" + "/".join(site_url.rstrip("/").split("/")[3:])
 
 
@@ -86,7 +120,7 @@ HTTP_TOO_MANY_REQUESTS = 429
 HTTP_BAD_REQUEST = 400
 
 
-def request_with_retry(client, url, max_retries=5):  # pragma: no cover
+def request_with_retry(client: httpx.Client, url: str, max_retries: int = 5) -> httpx.Response:  # pragma: no cover
     for attempt in range(max_retries):
         resp = client.get(url)
         if resp.status_code == HTTP_TOO_MANY_REQUESTS:
@@ -100,7 +134,11 @@ def request_with_retry(client, url, max_retries=5):  # pragma: no cover
 
 
 @contextmanager
-def stream_with_retry(client, url, max_retries=5):  # pragma: no cover
+def stream_with_retry(  # pragma: no cover
+    client: httpx.Client,
+    url: str,
+    max_retries: int = 5,
+) -> Generator[httpx.Response, None, None]:
     for attempt in range(max_retries):
         with client.stream("GET", url) as resp:
             if resp.status_code == HTTP_TOO_MANY_REQUESTS:
@@ -115,7 +153,11 @@ def stream_with_retry(client, url, max_retries=5):  # pragma: no cover
     raise RuntimeError(msg)
 
 
-def get_folder_contents(client, site_url, folder_path):
+def get_folder_contents(
+    client: httpx.Client,
+    site_url: str,
+    folder_path: str,
+) -> tuple[list[SharePointFolder], list[SharePointFile]]:
     api_url = f"{site_url}/_api/web/GetFolderByServerRelativeUrl('{folder_path}')"
 
     folders_resp = request_with_retry(client, f"{api_url}/Folders")
@@ -127,7 +169,7 @@ def get_folder_contents(client, site_url, folder_path):
     return folders_data, files_data
 
 
-def get_folder_structure(client, site_url, folder_path) -> FolderNode:
+def get_folder_structure(client: httpx.Client, site_url: str, folder_path: str) -> FolderNode:
     node = FolderNode()
 
     folders, files = get_folder_contents(client, site_url, folder_path)
@@ -148,15 +190,26 @@ def get_folder_structure(client, site_url, folder_path) -> FolderNode:
     return node
 
 
-def process_folder(client, folder_path, site_url, progress, task_id):
-    folder_name = folder_path.split("/")[-1]
+def process_folder(
+    client: httpx.Client,
+    folder_path: str,
+    site_url: str,
+    progress: Progress,
+    task_id: TaskID,
+) -> tuple[str, str, FolderNode]:
+    folder_name = folder_path.rsplit("/", maxsplit=1)[-1]
     progress.update(task_id, description=f"Scanning {folder_name}...")
     structure = get_folder_structure(client, site_url, folder_path)
     progress.advance(task_id)
     return folder_name, folder_path, structure
 
 
-def extract_structure(client, site_url, folders, progress):
+def extract_structure(
+    client: httpx.Client,
+    site_url: str,
+    folders: list[str],
+    progress: Progress,
+) -> tuple[dict[str, FolderNode], dict[str, str]]:
     site_relative_url = get_site_relative_url(site_url)
 
     task_id = progress.add_task("Discovering...", total=len(folders))
@@ -173,10 +226,13 @@ def extract_structure(client, site_url, folders, progress):
     return structure, folder_paths
 
 
-def collect_files_from_structure(structure: dict[str, FolderNode], folder_paths: dict[str, str]):
+def collect_files_from_structure(
+    structure: dict[str, FolderNode],
+    folder_paths: dict[str, str],
+) -> list[tuple[str, str, FileMetadata]]:
     files: list[tuple[str, str, FileMetadata]] = []
 
-    def traverse(node: FolderNode, current_path: str, base_server_path: str):
+    def traverse(node: FolderNode, current_path: str, base_server_path: str) -> None:
         for filename, metadata in node.files.items():
             server_path = (
                 f"{base_server_path}/{current_path}/{filename}" if current_path else f"{base_server_path}/{filename}"
@@ -203,22 +259,22 @@ def should_download(remote_meta: FileMetadata, local_path: Path) -> bool:
     return local_size != remote_meta.size or local_mtime < remote_mtime
 
 
-def download_file(client, site_url, file_server_relative_url, local_path):
+def download_file(client: httpx.Client, site_url: str, file_server_relative_url: str, local_path: Path) -> int:
     url = f"{site_url}/_api/web/GetFileByServerRelativeUrl('{file_server_relative_url}')/$value"
 
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with stream_with_retry(client, url) as response, open(local_path, "wb") as f:
+    with stream_with_retry(client, url) as response, local_path.open("wb") as f:
         f.writelines(response.iter_bytes(chunk_size=8192))
 
     return local_path.stat().st_size
 
 
-def collect_all_remote_paths(structure, folder_paths):
+def collect_all_remote_paths(structure: dict[str, FolderNode], folder_paths: dict[str, str]) -> set[Path]:
     return {Path(local_path) for _, local_path, _ in collect_files_from_structure(structure, folder_paths)}
 
 
-def remove_orphans(output_dir, remote_paths):
+def remove_orphans(output_dir: Path, remote_paths: set[Path]) -> int:
     local_files = {
         p.relative_to(output_dir) for p in output_dir.rglob("*") if p.is_file() and p.name != "structure.json"
     }
@@ -229,7 +285,13 @@ def remove_orphans(output_dir, remote_paths):
     return len(orphans)
 
 
-def download_all_files(client, site_url, structure, output_dir, folder_paths):
+def download_all_files(
+    client: httpx.Client,
+    site_url: str,
+    structure: dict[str, FolderNode],
+    output_dir: Path,
+    folder_paths: dict[str, str],
+) -> None:
     files = collect_files_from_structure(structure, folder_paths)
     total = len(files)
 
@@ -273,11 +335,11 @@ def download_all_files(client, site_url, structure, output_dir, folder_paths):
     removed = remove_orphans(output_dir, remote_paths)
 
     console.print(
-        f"Downloaded: {downloaded}, Updated: {updated}, Skipped: {skipped}, Failed: {failed}, Removed: {removed}"
+        f"Downloaded: {downloaded}, Updated: {updated}, Skipped: {skipped}, Failed: {failed}, Removed: {removed}",
     )
 
 
-def main():  # pragma: no cover
+def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser()
     parser.add_argument("config", type=Path)
     parser.add_argument("output_dir", type=Path)
@@ -294,7 +356,7 @@ def main():  # pragma: no cover
 
     if args.structure:
         console.print("[bold blue][Phase 1][/] Loading structure from file...")
-        with open(args.structure) as f:
+        with args.structure.open() as f:
             data = json.load(f)
         structure = {name: FolderNode.from_dict(d) for name, d in data["structure"].items()}
         folder_paths = data["folder_paths"]
@@ -326,7 +388,7 @@ def main():  # pragma: no cover
             "structure": {name: node.to_dict() for name, node in structure.items()},
             "folder_paths": folder_paths,
         }
-        with open(structure_file, "w") as f:
+        with structure_file.open("w") as f:
             json.dump(output, f, indent=2, ensure_ascii=False)
         console.print(f"Structure saved to {structure_file}")
 

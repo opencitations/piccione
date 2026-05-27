@@ -3,14 +3,18 @@
 # SPDX-License-Identifier: ISC
 
 import argparse
+from pathlib import Path
 
 import requests
 import yaml
 from internetarchive import upload
+from rich.console import Console
+
+console = Console()
 
 
-def upload_files(config_path):
-    with open(config_path) as file:
+def upload_files(config_path: str | Path) -> None:
+    with Path(config_path).open() as file:
         config = yaml.safe_load(file)
 
     identifier = config["identifier"]
@@ -34,12 +38,12 @@ def upload_files(config_path):
 
     first_result = result[0]
     if isinstance(first_result, requests.Response) and first_result.ok:
-        print("Upload completed successfully!")
+        console.print("Upload completed successfully!")
     else:
-        print("Upload failed.")
+        console.print("Upload failed.")
 
 
-def main():  # pragma: no cover
+def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(description="Upload files to the Internet Archive.")
     parser.add_argument("config_path", type=str, help="Path to the YAML configuration file.")
     args = parser.parse_args()

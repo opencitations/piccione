@@ -5,9 +5,11 @@
 import json
 import re
 from pathlib import Path
+from typing import TypedDict, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from rich.progress import TaskID
 
 from piccione.download.from_sharepoint import (
     FileMetadata,
@@ -30,14 +32,23 @@ from piccione.download.from_sharepoint import (
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sharepoint" / "api_responses.json"
 
 
+class SharePointTestFixture(TypedDict):
+    site_url: str
+    site_relative_url: str
+    docs_folder: str
+    responses: dict[str, object]
+    expected_sala1_structure: dict[str, object]
+    expected_item_structure: dict[str, object]
+
+
 @pytest.fixture(scope="module")
-def sharepoint_fixture():
-    with open(FIXTURE_PATH) as f:
-        return json.load(f)
+def sharepoint_fixture() -> SharePointTestFixture:
+    with FIXTURE_PATH.open() as f:
+        return cast("SharePointTestFixture", json.load(f))
 
 
-def create_mock_client(responses: dict):
-    def mock_get(url: str):
+def create_mock_client(responses: dict[str, object]) -> MagicMock:
+    def mock_get(url: str) -> MagicMock:
         match = re.search(r"GetFolderByServerRelativeUrl\('([^']+)'\)/(Folders|Files)", url)
         if not match:
             msg = f"Unexpected URL format: {url}"
@@ -63,7 +74,7 @@ def create_mock_client(responses: dict):
 
 
 class TestLoadConfig:
-    def test_loads_yaml_config(self, tmp_path):
+    def test_loads_yaml_config(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.yaml"
         config_file.write_text(
             """
@@ -73,7 +84,7 @@ rtfa: xyz789
 folders:
   - /Shared Documents/Folder1
   - /Shared Documents/Folder2
-"""
+""",
         )
 
         config = load_config(config_file)
@@ -90,24 +101,24 @@ folders:
 
 
 class TestGetSiteRelativeUrl:
-    def test_extracts_site_relative_url(self):
+    def test_extracts_site_relative_url(self) -> None:
         site_url = "https://example.sharepoint.com/sites/MySite"
         result = get_site_relative_url(site_url)
         assert result == "/sites/MySite"
 
-    def test_handles_nested_site_path(self):
+    def test_handles_nested_site_path(self) -> None:
         site_url = "https://liveunibo.sharepoint.com/sites/PE5-Spoke4-CaseStudyAldrovandi"
         result = get_site_relative_url(site_url)
         assert result == "/sites/PE5-Spoke4-CaseStudyAldrovandi"
 
-    def test_handles_trailing_slash(self):
+    def test_handles_trailing_slash(self) -> None:
         site_url = "https://example.sharepoint.com/sites/MySite/"
         result = get_site_relative_url(site_url)
         assert result == "/sites/MySite"
 
 
 class TestSortStructure:
-    def test_sorts_subfolders_alphabetically(self):
+    def test_sorts_subfolders_alphabetically(self) -> None:
         node = FolderNode(
             subfolders={
                 "zebra": FolderNode(),
@@ -118,7 +129,7 @@ class TestSortStructure:
         result = sort_structure(node)
         assert list(result.subfolders.keys()) == ["apple", "mango", "zebra"]
 
-    def test_sorts_files_alphabetically(self):
+    def test_sorts_files_alphabetically(self) -> None:
         node = FolderNode(
             files={
                 "z.txt": FileMetadata(size=1, modified="2025-01-01T00:00:00Z", etag='"A"'),
@@ -128,7 +139,7 @@ class TestSortStructure:
         result = sort_structure(node)
         assert list(result.files.keys()) == ["a.txt", "z.txt"]
 
-    def test_sorts_nested_subfolders_recursively(self):
+    def test_sorts_nested_subfolders_recursively(self) -> None:
         node = FolderNode(
             subfolders={
                 "parent": FolderNode(
@@ -144,7 +155,7 @@ class TestSortStructure:
 
 
 class TestGetFolderContents:
-    def test_extracts_folders_and_files_from_sharepoint_api(self, sharepoint_fixture):
+    def test_extracts_folders_and_files_from_sharepoint_api(self, sharepoint_fixture: SharePointTestFixture) -> None:
         site_url = sharepoint_fixture["site_url"]
         responses = sharepoint_fixture["responses"]
         mock_client = create_mock_client(responses)
@@ -159,7 +170,7 @@ class TestGetFolderContents:
 
 
 class TestGetFolderStructure:
-    def test_extracts_complete_item_structure(self, sharepoint_fixture):
+    def test_extracts_complete_item_structure(self, sharepoint_fixture: SharePointTestFixture) -> None:
         site_url = sharepoint_fixture["site_url"]
         responses = sharepoint_fixture["responses"]
         mock_client = create_mock_client(responses)
@@ -170,10 +181,10 @@ class TestGetFolderStructure:
         expected = sharepoint_fixture["expected_item_structure"]
         assert result.to_dict() == expected
 
-    def test_filters_system_folders(self, sharepoint_fixture):
+    def test_filters_system_folders(self, sharepoint_fixture: SharePointTestFixture) -> None:
         site_url = sharepoint_fixture["site_url"]
 
-        responses_with_system = dict(sharepoint_fixture["responses"])
+        responses_with_system: dict[str, object] = dict(sharepoint_fixture["responses"])
         test_path = f"{sharepoint_fixture['docs_folder']}/TestFolder"
         responses_with_system[f"{test_path}/Folders"] = {
             "d": {
@@ -181,17 +192,17 @@ class TestGetFolderStructure:
                     {"Name": "_private", "ServerRelativeUrl": f"{test_path}/_private"},
                     {"Name": "Forms", "ServerRelativeUrl": f"{test_path}/Forms"},
                     {"Name": "valid", "ServerRelativeUrl": f"{test_path}/valid"},
-                ]
-            }
+                ],
+            },
         }
         responses_with_system[f"{test_path}/Files"] = {"d": {"results": []}}
         responses_with_system[f"{test_path}/valid/Folders"] = {"d": {"results": []}}
         responses_with_system[f"{test_path}/valid/Files"] = {
             "d": {
                 "results": [
-                    {"Name": "test.txt", "Length": "100", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": '"{X1}"'}
-                ]
-            }
+                    {"Name": "test.txt", "Length": "100", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": '"{X1}"'},
+                ],
+            },
         }
 
         mock_client = create_mock_client(responses_with_system)
@@ -201,13 +212,13 @@ class TestGetFolderStructure:
         assert "Forms" not in result.subfolders
         assert "valid" in result.subfolders
         assert result.subfolders["valid"].files == {
-            "test.txt": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{X1}"')
+            "test.txt": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{X1}"'),
         }
 
-    def test_empty_folder_returns_empty_node(self, sharepoint_fixture):
+    def test_empty_folder_returns_empty_node(self, sharepoint_fixture: SharePointTestFixture) -> None:
         site_url = sharepoint_fixture["site_url"]
 
-        responses = dict(sharepoint_fixture["responses"])
+        responses: dict[str, object] = dict(sharepoint_fixture["responses"])
         test_path = f"{sharepoint_fixture['docs_folder']}/EmptyFolder"
         responses[f"{test_path}/Folders"] = {"d": {"results": []}}
         responses[f"{test_path}/Files"] = {"d": {"results": []}}
@@ -219,18 +230,22 @@ class TestGetFolderStructure:
 
 
 class TestProcessFolder:
-    def test_extracts_folder_structure(self, sharepoint_fixture):
+    def test_extracts_folder_structure(self, sharepoint_fixture: SharePointTestFixture) -> None:
         site_url = sharepoint_fixture["site_url"]
         docs_folder = sharepoint_fixture["docs_folder"]
         responses = sharepoint_fixture["responses"]
         mock_client = create_mock_client(responses)
 
         mock_progress = MagicMock()
-        mock_task_id = 0
+        mock_task_id = TaskID(0)
 
         folder_path = f"{docs_folder}/Sala1"
         folder_name, returned_path, structure = process_folder(
-            mock_client, folder_path, site_url, mock_progress, mock_task_id
+            mock_client,
+            folder_path,
+            site_url,
+            mock_progress,
+            mock_task_id,
         )
 
         assert folder_name == "Sala1"
@@ -243,7 +258,7 @@ class TestProcessFolder:
 
 
 class TestExtractStructure:
-    def test_returns_sorted_structure(self, sharepoint_fixture):
+    def test_returns_sorted_structure(self, sharepoint_fixture: SharePointTestFixture) -> None:
         site_url = sharepoint_fixture["site_url"]
         responses = sharepoint_fixture["responses"]
         mock_client = create_mock_client(responses)
@@ -261,7 +276,7 @@ class TestExtractStructure:
         subfolder_keys = list(carta.subfolders.keys())
         assert subfolder_keys == sorted(subfolder_keys)
 
-    def test_handles_folder_without_leading_slash(self, sharepoint_fixture):
+    def test_handles_folder_without_leading_slash(self, sharepoint_fixture: SharePointTestFixture) -> None:
         site_url = sharepoint_fixture["site_url"]
         responses = sharepoint_fixture["responses"]
         mock_client = create_mock_client(responses)
@@ -278,7 +293,7 @@ class TestExtractStructure:
 
 
 class TestCollectFilesFromStructure:
-    def test_extracts_files_with_correct_paths(self):
+    def test_extracts_files_with_correct_paths(self) -> None:
         structure = {
             "Sala1": FolderNode(
                 subfolders={
@@ -287,21 +302,25 @@ class TestCollectFilesFromStructure:
                             "raw": FolderNode(
                                 files={
                                     "photo1.jpg": FileMetadata(
-                                        size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'
+                                        size=1000,
+                                        modified="2025-01-15T10:00:00Z",
+                                        etag='"{A}"',
                                     ),
                                     "photo2.jpg": FileMetadata(
-                                        size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'
+                                        size=2000,
+                                        modified="2025-01-15T10:00:00Z",
+                                        etag='"{B}"',
                                     ),
-                                }
+                                },
                             ),
                             "dcho": FolderNode(
                                 files={
                                     "model.obj": FileMetadata(size=3000, modified="2025-01-15T10:00:00Z", etag='"{C}"'),
-                                }
+                                },
                             ),
-                        }
+                        },
                     ),
-                }
+                },
             ),
         }
         folder_paths = {"Sala1": "/sites/test/Shared Documents/Sala1"}
@@ -327,7 +346,7 @@ class TestCollectFilesFromStructure:
         ]
         assert result == expected
 
-    def test_handles_nested_folders(self):
+    def test_handles_nested_folders(self) -> None:
         structure = {
             "Sala1": FolderNode(
                 subfolders={
@@ -338,18 +357,20 @@ class TestCollectFilesFromStructure:
                                     "materials": FolderNode(
                                         files={
                                             "texture.png": FileMetadata(
-                                                size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'
+                                                size=1000,
+                                                modified="2025-01-15T10:00:00Z",
+                                                etag='"{A}"',
                                             ),
-                                        }
+                                        },
                                     ),
                                 },
                                 files={
                                     "model.obj": FileMetadata(size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
                                 },
                             ),
-                        }
+                        },
                     ),
-                }
+                },
             ),
         }
         folder_paths = {"Sala1": "/sites/test/Shared Documents/Sala1"}
@@ -361,20 +382,20 @@ class TestCollectFilesFromStructure:
         assert any("materials/texture.png" in p for p in server_paths)
         assert any("rawp/model.obj" in p for p in server_paths)
 
-    def test_empty_structure_returns_empty_list(self):
+    def test_empty_structure_returns_empty_list(self) -> None:
         result = collect_files_from_structure({}, {})
         assert result == []
 
-    def test_folder_without_files(self):
+    def test_folder_without_files(self) -> None:
         structure = {
             "Sala1": FolderNode(
                 subfolders={
                     "S1-01-Item": FolderNode(
                         subfolders={
                             "raw": FolderNode(),
-                        }
+                        },
                     ),
-                }
+                },
             ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
@@ -383,7 +404,7 @@ class TestCollectFilesFromStructure:
 
 
 class TestDownloadFile:
-    def test_streams_content_to_file(self, tmp_path):
+    def test_streams_content_to_file(self, tmp_path: Path) -> None:
         mock_response = MagicMock()
         mock_response.iter_bytes.return_value = [b"chunk1", b"chunk2", b"chunk3"]
         mock_response.__enter__ = MagicMock(return_value=mock_response)
@@ -406,7 +427,7 @@ class TestDownloadFile:
         assert local_path.read_bytes() == b"chunk1chunk2chunk3"
         assert size == 18
 
-    def test_creates_parent_directories(self, tmp_path):
+    def test_creates_parent_directories(self, tmp_path: Path) -> None:
         mock_response = MagicMock()
         mock_response.iter_bytes.return_value = [b"data"]
         mock_response.__enter__ = MagicMock(return_value=mock_response)
@@ -422,7 +443,7 @@ class TestDownloadFile:
 
 
 @pytest.fixture
-def mock_progress():
+def mock_progress() -> MagicMock:
     mock = MagicMock()
     mock.__enter__ = MagicMock(return_value=mock)
     mock.__exit__ = MagicMock(return_value=False)
@@ -431,24 +452,24 @@ def mock_progress():
 
 
 class TestShouldDownload:
-    def test_returns_true_when_file_does_not_exist(self, tmp_path):
+    def test_returns_true_when_file_does_not_exist(self, tmp_path: Path) -> None:
         local_path = tmp_path / "nonexistent.txt"
         remote_meta = FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"')
         assert should_download(remote_meta, local_path) is True
 
-    def test_returns_true_when_size_differs(self, tmp_path):
+    def test_returns_true_when_size_differs(self, tmp_path: Path) -> None:
         local_path = tmp_path / "file.txt"
         local_path.write_bytes(b"x" * 50)
         remote_meta = FileMetadata(size=100, modified="2020-01-01T10:00:00Z", etag='"{A}"')
         assert should_download(remote_meta, local_path) is True
 
-    def test_returns_true_when_remote_is_newer(self, tmp_path):
+    def test_returns_true_when_remote_is_newer(self, tmp_path: Path) -> None:
         local_path = tmp_path / "file.txt"
         local_path.write_bytes(b"x" * 100)
         remote_meta = FileMetadata(size=100, modified="2099-01-01T10:00:00Z", etag='"{A}"')
         assert should_download(remote_meta, local_path) is True
 
-    def test_returns_false_when_same_size_and_local_is_newer(self, tmp_path):
+    def test_returns_false_when_same_size_and_local_is_newer(self, tmp_path: Path) -> None:
         local_path = tmp_path / "file.txt"
         local_path.write_bytes(b"x" * 100)
         remote_meta = FileMetadata(size=100, modified="2020-01-01T10:00:00Z", etag='"{A}"')
@@ -456,7 +477,7 @@ class TestShouldDownload:
 
 
 class TestCollectAllRemotePaths:
-    def test_collects_paths(self):
+    def test_collects_paths(self) -> None:
         structure = {
             "Sala1": FolderNode(
                 subfolders={
@@ -465,11 +486,11 @@ class TestCollectAllRemotePaths:
                             "raw": FolderNode(
                                 files={
                                     "photo.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
-                                }
+                                },
                             ),
-                        }
+                        },
                     ),
-                }
+                },
             ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
@@ -478,25 +499,25 @@ class TestCollectAllRemotePaths:
 
 
 class TestRemoveOrphans:
-    def test_removes_orphan_files(self, tmp_path):
+    def test_removes_orphan_files(self, tmp_path: Path) -> None:
         orphan = tmp_path / "orphan.txt"
         orphan.write_bytes(b"data")
-        remote_paths = set()
+        remote_paths: set[Path] = set()
         with patch("piccione.download.from_sharepoint.console"):
             removed = remove_orphans(tmp_path, remote_paths)
         assert removed == 1
         assert not orphan.exists()
 
-    def test_keeps_structure_json(self, tmp_path):
+    def test_keeps_structure_json(self, tmp_path: Path) -> None:
         structure_file = tmp_path / "structure.json"
         structure_file.write_text("{}")
-        remote_paths = set()
+        remote_paths: set[Path] = set()
         with patch("piccione.download.from_sharepoint.console"):
             removed = remove_orphans(tmp_path, remote_paths)
         assert removed == 0
         assert structure_file.exists()
 
-    def test_keeps_remote_files(self, tmp_path):
+    def test_keeps_remote_files(self, tmp_path: Path) -> None:
         kept = tmp_path / "kept.txt"
         kept.write_bytes(b"data")
         remote_paths = {Path("kept.txt")}
@@ -507,7 +528,7 @@ class TestRemoveOrphans:
 
 
 class TestDownloadAllFiles:
-    def test_skips_unchanged_files(self, tmp_path, mock_progress):
+    def test_skips_unchanged_files(self, tmp_path: Path, mock_progress: MagicMock) -> None:
         structure = {
             "Sala1": FolderNode(
                 subfolders={
@@ -516,13 +537,15 @@ class TestDownloadAllFiles:
                             "raw": FolderNode(
                                 files={
                                     "existing.jpg": FileMetadata(
-                                        size=12, modified="2020-01-01T10:00:00Z", etag='"{A}"'
+                                        size=12,
+                                        modified="2020-01-01T10:00:00Z",
+                                        etag='"{A}"',
                                     ),
-                                }
+                                },
                             ),
-                        }
+                        },
                     ),
-                }
+                },
             ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
@@ -532,13 +555,15 @@ class TestDownloadAllFiles:
         existing.write_bytes(b"already here")
 
         mock_client = MagicMock()
-        with patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress):
-            with patch("piccione.download.from_sharepoint.console"):
-                download_all_files(mock_client, "https://test", structure, tmp_path, folder_paths)
+        with (
+            patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress),
+            patch("piccione.download.from_sharepoint.console"),
+        ):
+            download_all_files(mock_client, "https://test", structure, tmp_path, folder_paths)
 
         assert existing.read_bytes() == b"already here"
 
-    def test_continues_on_error(self, tmp_path, mock_progress):
+    def test_continues_on_error(self, tmp_path: Path, mock_progress: MagicMock) -> None:
         structure = {
             "Sala1": FolderNode(
                 subfolders={
@@ -548,13 +573,15 @@ class TestDownloadAllFiles:
                                 files={
                                     "fail.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
                                     "success.jpg": FileMetadata(
-                                        size=100, modified="2025-01-15T10:00:00Z", etag='"{B}"'
+                                        size=100,
+                                        modified="2025-01-15T10:00:00Z",
+                                        etag='"{B}"',
                                     ),
-                                }
+                                },
                             ),
-                        }
+                        },
                     ),
-                }
+                },
             ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
@@ -566,7 +593,7 @@ class TestDownloadAllFiles:
 
         call_count = 0
 
-        def side_effect(*args, **kwargs):
+        def side_effect(*args: object, **kwargs: object) -> MagicMock:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
@@ -576,14 +603,16 @@ class TestDownloadAllFiles:
 
         with patch("piccione.download.from_sharepoint.stream_with_retry") as mock_stream:
             mock_stream.side_effect = side_effect
-            with patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress):
-                with patch("piccione.download.from_sharepoint.console"):
-                    download_all_files(MagicMock(), "https://test", structure, tmp_path, folder_paths)
+            with (
+                patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress),
+                patch("piccione.download.from_sharepoint.console"),
+            ):
+                download_all_files(MagicMock(), "https://test", structure, tmp_path, folder_paths)
 
         success_file = tmp_path / "Sala1" / "item" / "raw" / "success.jpg"
         assert success_file.exists()
 
-    def test_downloads_files(self, tmp_path, mock_progress):
+    def test_downloads_files(self, tmp_path: Path, mock_progress: MagicMock) -> None:
         structure = {
             "Sala1": FolderNode(
                 subfolders={
@@ -592,11 +621,11 @@ class TestDownloadAllFiles:
                             "raw": FolderNode(
                                 files={
                                     "photo.jpg": FileMetadata(size=1024, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
-                                }
+                                },
                             ),
-                        }
+                        },
                     ),
-                }
+                },
             ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
@@ -608,9 +637,11 @@ class TestDownloadAllFiles:
 
         with patch("piccione.download.from_sharepoint.stream_with_retry") as mock_stream:
             mock_stream.return_value = mock_response
-            with patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress):
-                with patch("piccione.download.from_sharepoint.console"):
-                    download_all_files(MagicMock(), "https://test", structure, tmp_path, folder_paths)
+            with (
+                patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress),
+                patch("piccione.download.from_sharepoint.console"),
+            ):
+                download_all_files(MagicMock(), "https://test", structure, tmp_path, folder_paths)
 
         downloaded_file = tmp_path / "Sala1" / "item" / "raw" / "photo.jpg"
         assert downloaded_file.exists()

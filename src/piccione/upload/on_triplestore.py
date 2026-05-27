@@ -3,48 +3,52 @@
 # SPDX-License-Identifier: ISC
 
 import argparse
-import os
+from pathlib import Path
 
+from rich.console import Console
 from sparqlite import SPARQLClient
 from tqdm import tqdm
 
 from piccione.upload.cache_manager import CacheManager
 
+console = Console()
 
-def save_failed_query_file(filename, failed_file):
-    with open(failed_file, "a", encoding="utf8") as f:
+
+def save_failed_query_file(filename: str, failed_file: str | Path) -> None:
+    with Path(failed_file).open("a", encoding="utf8") as f:
         f.write(f"{filename}\n")
 
 
-def remove_stop_file(stop_file):
-    if os.path.exists(stop_file):
-        os.remove(stop_file)
-        print(f"Existing stop file {stop_file} has been removed.")
+def remove_stop_file(stop_file: str | Path) -> None:
+    if Path(stop_file).exists():
+        Path(stop_file).unlink()
+        console.print(f"Existing stop file {stop_file} has been removed.")
 
 
 def upload_sparql_updates(  # noqa: PLR0913
-    endpoint,
-    folder,
-    failed_file="failed_queries.txt",
-    stop_file=".stop_upload",
-    redis_host=None,
-    redis_port=None,
-    redis_db=None,
-    description="Processing files",
-    show_progress=True,
-):
-    if not os.path.exists(folder):
+    endpoint: str,
+    folder: str | Path,
+    *,
+    failed_file: str | Path = "failed_queries.txt",
+    stop_file: str | Path = ".stop_upload",
+    redis_host: str | None = None,
+    redis_port: int = 6379,
+    redis_db: int = 4,
+    description: str = "Processing files",
+    show_progress: bool = True,
+) -> None:
+    if not Path(folder).exists():
         return
 
     cache_manager = None
     if redis_host is not None:
         cache_manager = CacheManager(
             redis_host=redis_host,
-            redis_port=redis_port if redis_port is not None else 6379,
-            redis_db=redis_db if redis_db is not None else 4,
+            redis_port=redis_port,
+            redis_db=redis_db,
         )
 
-    all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]
+    all_files = [f.name for f in Path(folder).iterdir() if f.name.endswith(".sparql")]
     files_to_process = [f for f in all_files if f not in cache_manager] if cache_manager is not None else all_files
 
     if not files_to_process:
@@ -53,13 +57,13 @@ def upload_sparql_updates(  # noqa: PLR0913
     iterator = tqdm(files_to_process, desc=description) if show_progress else files_to_process
     with SPARQLClient(endpoint, max_retries=3, backoff_factor=5) as client:
         for file in iterator:
-            if os.path.exists(stop_file):
-                print(f"\nStop file {stop_file} detected. Interrupting the process...")
+            if Path(stop_file).exists():
+                console.print(f"\nStop file {stop_file} detected. Interrupting the process...")
                 break
 
-            file_path = os.path.join(folder, file)
+            file_path = Path(folder) / file
 
-            with open(file_path, encoding="utf-8") as f:
+            with file_path.open(encoding="utf-8") as f:
                 query = f.read().strip()
 
             if not query:
@@ -72,11 +76,11 @@ def upload_sparql_updates(  # noqa: PLR0913
                 if cache_manager is not None:
                     cache_manager.add(file)
             except Exception as e:  # noqa: BLE001
-                print(f"Failed to execute {file}: {e}")
+                console.print(f"Failed to execute {file}: {e}")
                 save_failed_query_file(file, failed_file)
 
 
-def main():  # pragma: no cover
+def main() -> None:  # pragma: no cover
     parser = argparse.ArgumentParser(description="Execute SPARQL update queries on a triple store.")
     parser.add_argument("endpoint", type=str, help="Endpoint URL of the triple store")
     parser.add_argument(
@@ -102,11 +106,11 @@ def main():  # pragma: no cover
     upload_sparql_updates(
         args.endpoint,
         args.folder,
-        args.failed_file,
-        args.stop_file,
+        failed_file=args.failed_file,
+        stop_file=args.stop_file,
         redis_host=args.redis_host,
-        redis_port=args.redis_port,
-        redis_db=args.redis_db,
+        redis_port=args.redis_port or 6379,
+        redis_db=args.redis_db or 4,
     )
 
 

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import hashlib
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,7 +12,7 @@ from piccione.download.from_figshare import download_file, get_article_metadata
 
 
 class TestGetArticleMetadata:
-    def test_fetches_article_and_files(self):
+    def test_fetches_article_and_files(self) -> None:
         mock_article_response = MagicMock()
         mock_article_response.json.return_value = {"id": 123, "title": "Test Article"}
 
@@ -35,15 +36,16 @@ class TestGetArticleMetadata:
         }
 
         assert mock_get.call_count == 2
-        mock_get.assert_any_call("https://api.figshare.com/v2/articles/123")
+        mock_get.assert_any_call("https://api.figshare.com/v2/articles/123", timeout=30)
         mock_get.assert_any_call(
             "https://api.figshare.com/v2/articles/123/files",
             params={"page_size": 1000},
+            timeout=30,
         )
 
 
 class TestDownloadFile:
-    def test_downloads_and_writes_file(self, tmp_path):
+    def test_downloads_and_writes_file(self, tmp_path: Path) -> None:
         output_path = tmp_path / "downloaded.txt"
         content = b"file content here"
 
@@ -61,10 +63,10 @@ class TestDownloadFile:
 
         assert output_path.read_bytes() == content
 
-    def test_verifies_md5_when_provided(self, tmp_path):
+    def test_verifies_md5_when_provided(self, tmp_path: Path) -> None:
         output_path = tmp_path / "downloaded.txt"
         content = b"test content"
-        expected_md5 = hashlib.md5(content).hexdigest()
+        expected_md5 = hashlib.md5(content, usedforsecurity=False).hexdigest()
 
         mock_response = MagicMock()
         mock_response.iter_content.return_value = [content]
@@ -80,7 +82,7 @@ class TestDownloadFile:
 
         assert output_path.read_bytes() == content
 
-    def test_raises_on_md5_mismatch(self, tmp_path):
+    def test_raises_on_md5_mismatch(self, tmp_path: Path) -> None:
         output_path = tmp_path / "downloaded.txt"
         content = b"test content"
         wrong_md5 = "0" * 32
@@ -98,5 +100,5 @@ class TestDownloadFile:
         ):
             download_file("https://example.com/file", output_path, len(content), wrong_md5)
 
-        actual_md5 = hashlib.md5(content).hexdigest()
+        actual_md5 = hashlib.md5(content, usedforsecurity=False).hexdigest()
         assert str(exc_info.value) == f"MD5 mismatch: expected {wrong_md5}, got {actual_md5}"

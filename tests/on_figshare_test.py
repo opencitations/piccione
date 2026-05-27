@@ -4,12 +4,15 @@
 
 import hashlib
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
 
 from piccione.upload.on_figshare import (
+    FigshareFileInfo,
+    FigsharePart,
     complete_upload,
     create_file,
     get_file_check_data,
@@ -21,29 +24,29 @@ from piccione.upload.on_figshare import (
 
 
 class TestGetFileCheckData:
-    def test_returns_md5_and_size(self, tmp_path):
+    def test_returns_md5_and_size(self, tmp_path: Path) -> None:
         test_file = tmp_path / "test.txt"
         content = b"hello world"
         test_file.write_bytes(content)
 
         md5, size = get_file_check_data(str(test_file))
 
-        assert md5 == hashlib.md5(content).hexdigest()
+        assert md5 == hashlib.md5(content, usedforsecurity=False).hexdigest()
         assert size == 11
 
-    def test_handles_large_file_in_chunks(self, tmp_path):
+    def test_handles_large_file_in_chunks(self, tmp_path: Path) -> None:
         test_file = tmp_path / "large.bin"
         content = b"x" * 2097152  # 2MB (2 chunks)
         test_file.write_bytes(content)
 
         md5, size = get_file_check_data(str(test_file))
 
-        assert md5 == hashlib.md5(content).hexdigest()
+        assert md5 == hashlib.md5(content, usedforsecurity=False).hexdigest()
         assert size == 2097152
 
 
 class TestIssueRequest:
-    def test_successful_json_response(self):
+    def test_successful_json_response(self) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.content = b'{"key": "value"}'
@@ -61,7 +64,7 @@ class TestIssueRequest:
             timeout=(30, 300),
         )
 
-    def test_successful_binary_response(self):
+    def test_successful_binary_response(self) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.content = b"binary data"
@@ -72,7 +75,7 @@ class TestIssueRequest:
 
         assert result == b"binary data"
 
-    def test_sends_json_data_when_not_binary(self):
+    def test_sends_json_data_when_not_binary(self) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.content = b'{"result": "ok"}'
@@ -84,7 +87,7 @@ class TestIssueRequest:
         call_kwargs = mock_req.call_args[1]
         assert call_kwargs["data"] == '{"foo": "bar"}'
 
-    def test_sends_raw_data_when_binary(self):
+    def test_sends_raw_data_when_binary(self) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.content = b""
@@ -96,22 +99,24 @@ class TestIssueRequest:
         call_kwargs = mock_req.call_args[1]
         assert call_kwargs["data"] == b"raw bytes"
 
-    def test_http_error_is_raised(self):
+    def test_http_error_is_raised(self) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
         mock_response.text = "Resource not found"
 
-        with patch("piccione.upload.on_figshare.requests.request", return_value=mock_response):
-            with pytest.raises(requests.exceptions.HTTPError):
-                issue_request("GET", "https://api.figshare.com/test", "token")
+        with (
+            patch("piccione.upload.on_figshare.requests.request", return_value=mock_response),
+            pytest.raises(requests.exceptions.HTTPError),
+        ):
+            issue_request("GET", "https://api.figshare.com/test", "token")
 
 
 class TestUploadPart:
-    def test_uploads_correct_chunk(self):
-        file_info = {"upload_url": "https://upload.figshare.com/parts"}
+    def test_uploads_correct_chunk(self) -> None:
+        file_info: FigshareFileInfo = {"upload_url": "https://upload.figshare.com/parts", "id": 0}
         stream = BytesIO(b"0123456789")
-        part = {"partNo": 1, "startOffset": 2, "endOffset": 5}
+        part: FigsharePart = {"partNo": 1, "startOffset": 2, "endOffset": 5}
 
         with patch("piccione.upload.on_figshare.issue_request") as mock_issue:
             upload_part(file_info, stream, part, "token123")
@@ -121,26 +126,28 @@ class TestUploadPart:
             url="https://upload.figshare.com/parts/1",
             data=b"2345",
             binary=True,
-            token="token123",
+            token="token123",  # noqa: S106
         )
 
 
 class TestUploadParts:
-    def test_uploads_all_parts(self, tmp_path):
+    def test_uploads_all_parts(self, tmp_path: Path) -> None:
         test_file = tmp_path / "test.txt"
         test_file.write_bytes(b"0123456789")
 
-        file_info = {"upload_url": "https://upload.figshare.com/parts"}
+        file_info: FigshareFileInfo = {"upload_url": "https://upload.figshare.com/parts", "id": 0}
         parts_response = {
             "parts": [
                 {"partNo": 1, "startOffset": 0, "endOffset": 4},
                 {"partNo": 2, "startOffset": 5, "endOffset": 9},
-            ]
+            ],
         }
 
-        with patch("piccione.upload.on_figshare.issue_request", return_value=parts_response) as mock_issue:
-            with patch("piccione.upload.on_figshare.tqdm"):
-                upload_parts(file_info, str(test_file), "token")
+        with (
+            patch("piccione.upload.on_figshare.issue_request", return_value=parts_response) as mock_issue,
+            patch("piccione.upload.on_figshare.tqdm"),
+        ):
+            upload_parts(file_info, str(test_file), "token")
 
         assert mock_issue.call_count == 3  # 1 GET + 2 PUTs
         calls = mock_issue.call_args_list
@@ -152,7 +159,7 @@ class TestUploadParts:
 
 
 class TestCreateFile:
-    def test_creates_file_and_returns_info(self, tmp_path):
+    def test_creates_file_and_returns_info(self, tmp_path: Path) -> None:
         test_file = tmp_path / "data.txt"
         test_file.write_bytes(b"content")
 
@@ -162,9 +169,11 @@ class TestCreateFile:
         mock_get_response = MagicMock()
         mock_get_response.json.return_value = {"id": 123, "name": "data.txt"}
 
-        with patch("piccione.upload.on_figshare.requests.post", return_value=mock_post_response) as mock_post:
-            with patch("piccione.upload.on_figshare.requests.get", return_value=mock_get_response) as mock_get:
-                result = create_file("article_1", "data.txt", str(test_file), "token")
+        with (
+            patch("piccione.upload.on_figshare.requests.post", return_value=mock_post_response) as mock_post,
+            patch("piccione.upload.on_figshare.requests.get", return_value=mock_get_response) as mock_get,
+        ):
+            result = create_file("article_1", "data.txt", str(test_file), "token")
 
         assert result == {"id": 123, "name": "data.txt"}
 
@@ -174,28 +183,29 @@ class TestCreateFile:
         assert post_call[1]["headers"] == {"Authorization": "token token"}
         assert post_call[1]["json"]["name"] == "data.txt"
         assert post_call[1]["json"]["size"] == 7
-        assert post_call[1]["json"]["md5"] == hashlib.md5(b"content").hexdigest()
+        assert post_call[1]["json"]["md5"] == hashlib.md5(b"content", usedforsecurity=False).hexdigest()
 
         mock_get.assert_called_once_with(
             "https://api.figshare.com/files/123",
             headers={"Authorization": "token token"},
+            timeout=30,
         )
 
 
 class TestCompleteUpload:
-    def test_sends_post_request(self):
+    def test_sends_post_request(self) -> None:
         with patch("piccione.upload.on_figshare.issue_request") as mock_issue:
             complete_upload("article_1", "file_123", "mytoken")
 
         mock_issue.assert_called_once_with(
             method="POST",
             url="https://api.figshare.com/v2/account/articles/article_1/files/file_123",
-            token="mytoken",
+            token="mytoken",  # noqa: S106
         )
 
 
 class TestMain:
-    def test_uploads_all_files(self, tmp_path):
+    def test_uploads_all_files(self, tmp_path: Path) -> None:
         file1 = tmp_path / "file1.txt"
         file2 = tmp_path / "file2.txt"
         file1.write_bytes(b"content1")
@@ -210,16 +220,20 @@ files_to_upload:
   - {file2}
 """)
 
-        with patch("piccione.upload.on_figshare.get_existing_files", return_value={}):
-            with patch("piccione.upload.on_figshare.create_file") as mock_create:
-                mock_create.side_effect = [
-                    {"id": "f1", "upload_url": "https://upload/1"},
-                    {"id": "f2", "upload_url": "https://upload/2"},
-                ]
-                with patch("piccione.upload.on_figshare.upload_parts"):
-                    with patch("piccione.upload.on_figshare.complete_upload") as mock_complete:
-                        with patch("piccione.upload.on_figshare.tqdm", side_effect=lambda x, **kw: x):
-                            main(str(config_file))
+        with (
+            patch("piccione.upload.on_figshare.get_existing_files", return_value={}),
+            patch("piccione.upload.on_figshare.create_file") as mock_create,
+        ):
+            mock_create.side_effect = [
+                {"id": "f1", "upload_url": "https://upload/1"},
+                {"id": "f2", "upload_url": "https://upload/2"},
+            ]
+            with (
+                patch("piccione.upload.on_figshare.upload_parts"),
+                patch("piccione.upload.on_figshare.complete_upload") as mock_complete,
+                patch("piccione.upload.on_figshare.tqdm", side_effect=lambda x, **_kw: x),
+            ):
+                main(str(config_file))
 
         assert mock_create.call_count == 2
         assert mock_complete.call_count == 2

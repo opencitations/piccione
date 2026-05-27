@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from collections.abc import Generator
 
 import pytest
 import redis
@@ -14,7 +15,7 @@ from virtuoso_utilities.launch_virtuoso import launch_virtuoso, remove_container
 VIRTUOSO_CONTAINER_NAME = "piccione-test-virtuoso"
 VIRTUOSO_HTTP_PORT = 28890
 VIRTUOSO_ISQL_PORT = 21111
-DBA_PASSWORD = "dba"
+DBA_PASSWORD = "dba"  # noqa: S105
 
 REDIS_CONTAINER_NAME = "piccione-test-redis"
 REDIS_IMAGE = "redis:7"
@@ -23,7 +24,7 @@ REDIS_DB = 2
 
 
 @pytest.fixture(scope="session")
-def virtuoso_container():
+def virtuoso_container() -> Generator[str, None, None]:
     data_dir = tempfile.mkdtemp(prefix="virtuoso_data_")
     launch_virtuoso(
         name=VIRTUOSO_CONTAINER_NAME,
@@ -43,9 +44,9 @@ def virtuoso_container():
 
 
 @pytest.fixture(scope="session")
-def redis_container():
-    subprocess.run(
-        ["docker", "rm", "-f", REDIS_CONTAINER_NAME],
+def redis_container() -> Generator[str, None, None]:
+    subprocess.run(  # noqa: S603
+        ["docker", "rm", "-f", REDIS_CONTAINER_NAME],  # noqa: S607
         check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -60,14 +61,14 @@ def redis_container():
         f"{REDIS_PORT}:6379",
         REDIS_IMAGE,
     ]
-    subprocess.run(cmd, check=True, capture_output=True)
+    subprocess.run(cmd, check=True, capture_output=True)  # noqa: S603
     time.sleep(2)
     yield REDIS_CONTAINER_NAME
-    subprocess.run(["docker", "rm", "-f", REDIS_CONTAINER_NAME], check=True)
+    subprocess.run(["docker", "rm", "-f", REDIS_CONTAINER_NAME], check=True)  # noqa: S603, S607
 
 
 @pytest.fixture
-def clean_virtuoso(virtuoso_container):
+def clean_virtuoso(virtuoso_container: str) -> str:
     cleanup_cmd = [
         "docker",
         "exec",
@@ -79,12 +80,12 @@ def clean_virtuoso(virtuoso_container):
         DBA_PASSWORD,
         "exec=log_enable(3,1); RDF_GLOBAL_RESET();",
     ]
-    subprocess.run(cleanup_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(cleanup_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
     return virtuoso_container
 
 
 @pytest.fixture
-def clean_redis(redis_container):
+def clean_redis(redis_container: str) -> Generator[redis.Redis, None, None]:
     r = redis.Redis(host="localhost", port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
     r.flushdb()
     yield r
@@ -93,7 +94,7 @@ def clean_redis(redis_container):
 
 
 @pytest.fixture
-def temp_dir():
+def temp_dir() -> Generator[str, None, None]:
     path = tempfile.mkdtemp()
     yield path
     shutil.rmtree(path, ignore_errors=True)

@@ -16,7 +16,7 @@ class CacheManager:
         redis_host: str = "localhost",
         redis_port: int = 6379,
         redis_db: int = 4,
-    ):
+    ) -> None:
         self.processed_files: set[str] = set()
         try:
             self._redis = redis.Redis(
