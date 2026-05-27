@@ -16,7 +16,7 @@ Pronounced *Py-ccione*.
 [![Coverage](https://opencitations.github.io/piccione/coverage/coverage-badge.svg)](https://opencitations.github.io/piccione/coverage/)
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://github.com/opencitations/piccione/actions/workflows/pyright.yml)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-[![REUSE](https://github.com/opencitations/piccione/actions/workflows/reuse.yml/badge.svg)](https://github.com/opencitations/piccione/actions/workflows/reuse.yml)
+[![REUSE status](https://api.reuse.software/badge/github.com/opencitations/piccione)](https://api.reuse.software/info/github.com/opencitations/piccione)
 
 **PICCIONE** - Python Interface for Cloud Content Ingest and Outbound Network Export
 
