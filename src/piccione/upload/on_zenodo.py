@@ -7,7 +7,10 @@ from __future__ import annotations
 import argparse
 import time
 from pathlib import Path
-from typing import Self, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
+
+if TYPE_CHECKING:
+    from typing import Self
 
 import requests
 import yaml
@@ -338,11 +341,14 @@ def build_inveniordm_payload(metadata_config: InvenioRDMMetadata, access: dict[s
             {"reference": ref} if isinstance(ref, str) else ref for ref in metadata_config["references"]
         ]
 
-    return cast("InvenioRDMPayload", {
-        "access": access,
-        "files": {"enabled": True},
-        "metadata": metadata,
-    })
+    return cast(
+        "InvenioRDMPayload",
+        {
+            "access": access,
+            "files": {"enabled": True},
+            "metadata": metadata,
+        },
+    )
 
 
 def main(config_file: str, *, publish: bool = False) -> ZenodoDraft | ZenodoPublished:
