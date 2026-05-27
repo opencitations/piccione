@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-
 from rich.progress import TaskID
 
 from piccione.upload.on_zenodo import (
@@ -68,7 +67,10 @@ class TestTextToHtml:
         assert text_to_html("- Item one\n- Item two") == "<ul><li>Item one</li><li>Item two</li></ul>"
 
     def test_paragraph_then_list(self):
-        assert text_to_html("Introduction\n\n- Item one\n- Item two") == "<p>Introduction</p><ul><li>Item one</li><li>Item two</li></ul>"
+        assert (
+            text_to_html("Introduction\n\n- Item one\n- Item two")
+            == "<p>Introduction</p><ul><li>Item one</li><li>Item two</li></ul>"
+        )
 
 
 class TestBuildInvenioRdmPayload:
@@ -141,7 +143,9 @@ class TestBuildInvenioRdmPayload:
         assert result["metadata"]["version"] == "1.0.0"
         assert result["metadata"]["languages"] == [{"id": "eng"}]
         assert result["metadata"]["publisher"] == "Zenodo"
-        assert result["metadata"]["funding"] == [{"funder": {"id": "00k4n6c32"}, "award": {"id": "00k4n6c32::101017452"}}]
+        assert result["metadata"]["funding"] == [
+            {"funder": {"id": "00k4n6c32"}, "award": {"id": "00k4n6c32::101017452"}}
+        ]
 
     def test_files_always_enabled(self):
         config = {
@@ -243,7 +247,11 @@ class TestUploadFileWithRetry:
         assert mock_post.call_count == 2
         mock_post.assert_any_call(
             "https://zenodo.org/api/records/rec123/draft/files",
-            headers={"Authorization": "Bearer token123", "User-Agent": "TestAgent/1.0", "Content-Type": "application/json"},
+            headers={
+                "Authorization": "Bearer token123",
+                "User-Agent": "TestAgent/1.0",
+                "Content-Type": "application/json",
+            },
             json=[{"key": "test.txt"}],
         )
 
@@ -354,7 +362,9 @@ files:
         assert args[0] == "https://zenodo.org/api"
         assert args[1] == "test_token"
         assert args[2] == "TestAgent/1.0"
-        mock_upload.assert_called_once_with("https://zenodo.org/api", "abc123", str(test_file), "test_token", "TestAgent/1.0")
+        mock_upload.assert_called_once_with(
+            "https://zenodo.org/api", "abc123", str(test_file), "test_token", "TestAgent/1.0"
+        )
 
     def test_new_version_flow(self, tmp_path):
         config_file, test_file = _base_config(tmp_path)
@@ -483,7 +493,9 @@ files:
                 with patch("piccione.upload.on_zenodo.submit_community_review") as mock_review:
                     main(str(config_file))
 
-        mock_review.assert_called_once_with("https://zenodo.org/api", "token", "abc123", "my-community", "TestAgent/1.0")
+        mock_review.assert_called_once_with(
+            "https://zenodo.org/api", "token", "abc123", "my-community", "TestAgent/1.0"
+        )
 
     def test_community_skipped_on_sandbox(self, tmp_path):
         config_file, test_file = _base_config(tmp_path)

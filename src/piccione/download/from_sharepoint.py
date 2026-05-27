@@ -77,38 +77,42 @@ def get_site_relative_url(site_url):
 
 
 def sort_structure(node: FolderNode) -> FolderNode:
-    sorted_subfolders = {
-        k: sort_structure(v) for k, v in sorted(node.subfolders.items())
-    }
+    sorted_subfolders = {k: sort_structure(v) for k, v in sorted(node.subfolders.items())}
     sorted_files = dict(sorted(node.files.items()))
     return FolderNode(subfolders=sorted_subfolders, files=sorted_files)
+
+
+HTTP_TOO_MANY_REQUESTS = 429
+HTTP_BAD_REQUEST = 400
 
 
 def request_with_retry(client, url, max_retries=5):  # pragma: no cover
     for attempt in range(max_retries):
         resp = client.get(url)
-        if resp.status_code == 429:
+        if resp.status_code == HTTP_TOO_MANY_REQUESTS:
             wait_time = 2**attempt
             time.sleep(wait_time)
             continue
         resp.raise_for_status()
         return resp
-    raise Exception(f"Rate limited after {max_retries} retries for {url}")
+    msg = f"Rate limited after {max_retries} retries for {url}"
+    raise RuntimeError(msg)
 
 
 @contextmanager
 def stream_with_retry(client, url, max_retries=5):  # pragma: no cover
     for attempt in range(max_retries):
         with client.stream("GET", url) as resp:
-            if resp.status_code == 429:
+            if resp.status_code == HTTP_TOO_MANY_REQUESTS:
                 wait_time = 2**attempt
                 time.sleep(wait_time)
                 continue
-            if resp.status_code >= 400:
+            if resp.status_code >= HTTP_BAD_REQUEST:
                 resp.raise_for_status()
             yield resp
             return
-    raise Exception(f"Rate limited after {max_retries} retries for {url}")
+    msg = f"Rate limited after {max_retries} retries for {url}"
+    raise RuntimeError(msg)
 
 
 def get_folder_contents(client, site_url, folder_path):
@@ -174,7 +178,9 @@ def collect_files_from_structure(structure: dict[str, FolderNode], folder_paths:
 
     def traverse(node: FolderNode, current_path: str, base_server_path: str):
         for filename, metadata in node.files.items():
-            server_path = f"{base_server_path}/{current_path}/{filename}" if current_path else f"{base_server_path}/{filename}"
+            server_path = (
+                f"{base_server_path}/{current_path}/{filename}" if current_path else f"{base_server_path}/{filename}"
+            )
             local_path = f"{current_path}/{filename}" if current_path else filename
             files.append((server_path, local_path, metadata))
         for name, child in node.subfolders.items():
@@ -202,10 +208,8 @@ def download_file(client, site_url, file_server_relative_url, local_path):
 
     local_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with stream_with_retry(client, url) as response:
-        with open(local_path, "wb") as f:
-            for chunk in response.iter_bytes(chunk_size=8192):
-                f.write(chunk)
+    with stream_with_retry(client, url) as response, open(local_path, "wb") as f:
+        f.writelines(response.iter_bytes(chunk_size=8192))
 
     return local_path.stat().st_size
 
@@ -215,7 +219,9 @@ def collect_all_remote_paths(structure, folder_paths):
 
 
 def remove_orphans(output_dir, remote_paths):
-    local_files = {p.relative_to(output_dir) for p in output_dir.rglob("*") if p.is_file() and p.name != "structure.json"}
+    local_files = {
+        p.relative_to(output_dir) for p in output_dir.rglob("*") if p.is_file() and p.name != "structure.json"
+    }
     orphans = local_files - remote_paths
     for orphan in orphans:
         (output_dir / orphan).unlink()
@@ -257,7 +263,7 @@ def download_all_files(client, site_url, structure, output_dir, folder_paths):
                     updated += 1
                 else:
                     downloaded += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 console.print(f"[red]Failed: {local_rel_path} ({e})")
                 failed += 1
 
@@ -266,7 +272,9 @@ def download_all_files(client, site_url, structure, output_dir, folder_paths):
     remote_paths = collect_all_remote_paths(structure, folder_paths)
     removed = remove_orphans(output_dir, remote_paths)
 
-    console.print(f"Downloaded: {downloaded}, Updated: {updated}, Skipped: {skipped}, Failed: {failed}, Removed: {removed}")
+    console.print(
+        f"Downloaded: {downloaded}, Updated: {updated}, Skipped: {skipped}, Failed: {failed}, Removed: {removed}"
+    )
 
 
 def main():  # pragma: no cover
@@ -298,14 +306,16 @@ def main():  # pragma: no cover
             "Accept": "application/json;odata=verbose",
         }
 
-        with Progress(
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            console=console,
-        ) as progress:
-            with httpx.Client(headers=json_headers) as client:
-                structure, folder_paths = extract_structure(client, site_url, folders, progress)
+        with (
+            Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                console=console,
+            ) as progress,
+            httpx.Client(headers=json_headers) as client,
+        ):
+            structure, folder_paths = extract_structure(client, site_url, folders, progress)
 
         args.output_dir.mkdir(parents=True, exist_ok=True)
 

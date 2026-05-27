@@ -10,7 +10,7 @@ from internetarchive import upload
 
 
 def upload_files(config_path):
-    with open(config_path, "r") as file:
+    with open(config_path) as file:
         config = yaml.safe_load(file)
 
     identifier = config["identifier"]
@@ -33,19 +33,15 @@ def upload_files(config_path):
     )
 
     first_result = result[0]
-    if isinstance(first_result, requests.Response) and first_result.status_code == 200:
+    if isinstance(first_result, requests.Response) and first_result.ok:
         print("Upload completed successfully!")
     else:
         print("Upload failed.")
 
 
 def main():  # pragma: no cover
-    parser = argparse.ArgumentParser(
-        description="Upload files to the Internet Archive."
-    )
-    parser.add_argument(
-        "config_path", type=str, help="Path to the YAML configuration file."
-    )
+    parser = argparse.ArgumentParser(description="Upload files to the Internet Archive.")
+    parser.add_argument("config_path", type=str, help="Path to the YAML configuration file.")
     args = parser.parse_args()
 
     upload_files(args.config_path)

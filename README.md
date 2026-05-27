@@ -14,7 +14,8 @@ Pronounced *Py-ccione*.
 
 [![Run tests](https://github.com/opencitations/piccione/actions/workflows/tests.yml/badge.svg)](https://github.com/opencitations/piccione/actions/workflows/tests.yml)
 [![Coverage](https://opencitations.github.io/piccione/coverage/coverage-badge.svg)](https://opencitations.github.io/piccione/coverage/)
-[![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://github.com/opencitations/piccione/actions/workflows/pyright.yml)
+[![Pyright](https://github.com/opencitations/piccione/actions/workflows/pyright.yml/badge.svg)](https://github.com/opencitations/piccione/actions/workflows/pyright.yml)
+[![Ruff](https://github.com/opencitations/piccione/actions/workflows/ruff.yml/badge.svg)](https://github.com/opencitations/piccione/actions/workflows/ruff.yml)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 [![REUSE status](https://api.reuse.software/badge/github.com/opencitations/piccione)](https://api.reuse.software/info/github.com/opencitations/piccione)
 

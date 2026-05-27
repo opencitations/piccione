@@ -50,9 +50,14 @@ class TestDownloadFile:
         mock_response = MagicMock()
         mock_response.iter_content.return_value = [content]
 
-        with patch("piccione.download.from_figshare.requests.get", return_value=mock_response):
-            with patch("piccione.download.from_figshare.tqdm", side_effect=lambda **kw: MagicMock(__enter__=MagicMock(return_value=MagicMock()), __exit__=MagicMock())):
-                download_file("https://example.com/file", output_path, len(content))
+        with (
+            patch("piccione.download.from_figshare.requests.get", return_value=mock_response),
+            patch(
+                "piccione.download.from_figshare.tqdm",
+                side_effect=lambda **kw: MagicMock(__enter__=MagicMock(return_value=MagicMock()), __exit__=MagicMock()),
+            ),
+        ):
+            download_file("https://example.com/file", output_path, len(content))
 
         assert output_path.read_bytes() == content
 
@@ -64,9 +69,14 @@ class TestDownloadFile:
         mock_response = MagicMock()
         mock_response.iter_content.return_value = [content]
 
-        with patch("piccione.download.from_figshare.requests.get", return_value=mock_response):
-            with patch("piccione.download.from_figshare.tqdm", side_effect=lambda **kw: MagicMock(__enter__=MagicMock(return_value=MagicMock()), __exit__=MagicMock())):
-                download_file("https://example.com/file", output_path, len(content), expected_md5)
+        with (
+            patch("piccione.download.from_figshare.requests.get", return_value=mock_response),
+            patch(
+                "piccione.download.from_figshare.tqdm",
+                side_effect=lambda **kw: MagicMock(__enter__=MagicMock(return_value=MagicMock()), __exit__=MagicMock()),
+            ),
+        ):
+            download_file("https://example.com/file", output_path, len(content), expected_md5)
 
         assert output_path.read_bytes() == content
 
@@ -78,10 +88,15 @@ class TestDownloadFile:
         mock_response = MagicMock()
         mock_response.iter_content.return_value = [content]
 
-        with patch("piccione.download.from_figshare.requests.get", return_value=mock_response):
-            with patch("piccione.download.from_figshare.tqdm", side_effect=lambda **kw: MagicMock(__enter__=MagicMock(return_value=MagicMock()), __exit__=MagicMock())):
-                with pytest.raises(ValueError) as exc_info:
-                    download_file("https://example.com/file", output_path, len(content), wrong_md5)
+        with (
+            patch("piccione.download.from_figshare.requests.get", return_value=mock_response),
+            patch(
+                "piccione.download.from_figshare.tqdm",
+                side_effect=lambda **kw: MagicMock(__enter__=MagicMock(return_value=MagicMock()), __exit__=MagicMock()),
+            ),
+            pytest.raises(ValueError, match="MD5 mismatch") as exc_info,
+        ):
+            download_file("https://example.com/file", output_path, len(content), wrong_md5)
 
         actual_md5 = hashlib.md5(content).hexdigest()
         assert str(exc_info.value) == f"MD5 mismatch: expected {wrong_md5}, got {actual_md5}"

@@ -26,9 +26,10 @@ class CacheManager:
                 decode_responses=True,
             )
             self._redis.ping()
-        except RedisConnectionError:
-            raise RuntimeError("Redis is not available. Cache requires Redis.")
-        self.processed_files.update(cast(set[str], self._redis.smembers(self.REDIS_KEY)))
+        except RedisConnectionError as err:
+            msg = "Redis is not available. Cache requires Redis."
+            raise RuntimeError(msg) from err
+        self.processed_files.update(cast("set[str]", self._redis.smembers(self.REDIS_KEY)))
 
     def add(self, filename: str) -> None:
         self.processed_files.add(filename)
@@ -38,5 +39,5 @@ class CacheManager:
         return filename in self.processed_files
 
     def get_all(self) -> set[str]:
-        self.processed_files.update(cast(set[str], self._redis.smembers(self.REDIS_KEY)))
+        self.processed_files.update(cast("set[str]", self._redis.smembers(self.REDIS_KEY)))
         return self.processed_files

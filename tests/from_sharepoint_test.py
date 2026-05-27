@@ -27,7 +27,6 @@ from piccione.download.from_sharepoint import (
     sort_structure,
 )
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sharepoint" / "api_responses.json"
 
 
@@ -39,18 +38,18 @@ def sharepoint_fixture():
 
 def create_mock_client(responses: dict):
     def mock_get(url: str):
-        match = re.search(
-            r"GetFolderByServerRelativeUrl\('([^']+)'\)/(Folders|Files)", url
-        )
+        match = re.search(r"GetFolderByServerRelativeUrl\('([^']+)'\)/(Folders|Files)", url)
         if not match:
-            raise ValueError(f"Unexpected URL format: {url}")
+            msg = f"Unexpected URL format: {url}"
+            raise ValueError(msg)
 
         folder_path = match.group(1)
         endpoint = match.group(2)
         response_key = f"{folder_path}/{endpoint}"
 
         if response_key not in responses:
-            raise KeyError(f"No fixture response for: {response_key}")
+            msg = f"No fixture response for: {response_key}"
+            raise KeyError(msg)
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -188,7 +187,11 @@ class TestGetFolderStructure:
         responses_with_system[f"{test_path}/Files"] = {"d": {"results": []}}
         responses_with_system[f"{test_path}/valid/Folders"] = {"d": {"results": []}}
         responses_with_system[f"{test_path}/valid/Files"] = {
-            "d": {"results": [{"Name": "test.txt", "Length": "100", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": "\"{X1}\""}]}
+            "d": {
+                "results": [
+                    {"Name": "test.txt", "Length": "100", "TimeLastModified": "2025-01-15T10:00:00Z", "ETag": '"{X1}"'}
+                ]
+            }
         }
 
         mock_client = create_mock_client(responses_with_system)
@@ -277,17 +280,29 @@ class TestExtractStructure:
 class TestCollectFilesFromStructure:
     def test_extracts_files_with_correct_paths(self):
         structure = {
-            "Sala1": FolderNode(subfolders={
-                "S1-01-Item": FolderNode(subfolders={
-                    "raw": FolderNode(files={
-                        "photo1.jpg": FileMetadata(size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
-                        "photo2.jpg": FileMetadata(size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
-                    }),
-                    "dcho": FolderNode(files={
-                        "model.obj": FileMetadata(size=3000, modified="2025-01-15T10:00:00Z", etag='"{C}"'),
-                    }),
-                }),
-            }),
+            "Sala1": FolderNode(
+                subfolders={
+                    "S1-01-Item": FolderNode(
+                        subfolders={
+                            "raw": FolderNode(
+                                files={
+                                    "photo1.jpg": FileMetadata(
+                                        size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'
+                                    ),
+                                    "photo2.jpg": FileMetadata(
+                                        size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'
+                                    ),
+                                }
+                            ),
+                            "dcho": FolderNode(
+                                files={
+                                    "model.obj": FileMetadata(size=3000, modified="2025-01-15T10:00:00Z", etag='"{C}"'),
+                                }
+                            ),
+                        }
+                    ),
+                }
+            ),
         }
         folder_paths = {"Sala1": "/sites/test/Shared Documents/Sala1"}
 
@@ -314,20 +329,28 @@ class TestCollectFilesFromStructure:
 
     def test_handles_nested_folders(self):
         structure = {
-            "Sala1": FolderNode(subfolders={
-                "S1-01-Item": FolderNode(subfolders={
-                    "rawp": FolderNode(
+            "Sala1": FolderNode(
+                subfolders={
+                    "S1-01-Item": FolderNode(
                         subfolders={
-                            "materials": FolderNode(files={
-                                "texture.png": FileMetadata(size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
-                            }),
-                        },
-                        files={
-                            "model.obj": FileMetadata(size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
-                        },
+                            "rawp": FolderNode(
+                                subfolders={
+                                    "materials": FolderNode(
+                                        files={
+                                            "texture.png": FileMetadata(
+                                                size=1000, modified="2025-01-15T10:00:00Z", etag='"{A}"'
+                                            ),
+                                        }
+                                    ),
+                                },
+                                files={
+                                    "model.obj": FileMetadata(size=2000, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
+                                },
+                            ),
+                        }
                     ),
-                }),
-            }),
+                }
+            ),
         }
         folder_paths = {"Sala1": "/sites/test/Shared Documents/Sala1"}
 
@@ -344,11 +367,15 @@ class TestCollectFilesFromStructure:
 
     def test_folder_without_files(self):
         structure = {
-            "Sala1": FolderNode(subfolders={
-                "S1-01-Item": FolderNode(subfolders={
-                    "raw": FolderNode(),
-                }),
-            }),
+            "Sala1": FolderNode(
+                subfolders={
+                    "S1-01-Item": FolderNode(
+                        subfolders={
+                            "raw": FolderNode(),
+                        }
+                    ),
+                }
+            ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
         result = collect_files_from_structure(structure, folder_paths)
@@ -364,9 +391,7 @@ class TestDownloadFile:
 
         mock_client = MagicMock()
 
-        with patch(
-            "piccione.download.from_sharepoint.stream_with_retry"
-        ) as mock_stream:
+        with patch("piccione.download.from_sharepoint.stream_with_retry") as mock_stream:
             mock_stream.return_value = mock_response
 
             local_path = tmp_path / "subdir" / "file.txt"
@@ -387,9 +412,7 @@ class TestDownloadFile:
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
 
-        with patch(
-            "piccione.download.from_sharepoint.stream_with_retry"
-        ) as mock_stream:
+        with patch("piccione.download.from_sharepoint.stream_with_retry") as mock_stream:
             mock_stream.return_value = mock_response
 
             local_path = tmp_path / "deep" / "nested" / "dir" / "file.bin"
@@ -435,13 +458,19 @@ class TestShouldDownload:
 class TestCollectAllRemotePaths:
     def test_collects_paths(self):
         structure = {
-            "Sala1": FolderNode(subfolders={
-                "item": FolderNode(subfolders={
-                    "raw": FolderNode(files={
-                        "photo.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
-                    }),
-                }),
-            }),
+            "Sala1": FolderNode(
+                subfolders={
+                    "item": FolderNode(
+                        subfolders={
+                            "raw": FolderNode(
+                                files={
+                                    "photo.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                                }
+                            ),
+                        }
+                    ),
+                }
+            ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
         result = collect_all_remote_paths(structure, folder_paths)
@@ -480,13 +509,21 @@ class TestRemoveOrphans:
 class TestDownloadAllFiles:
     def test_skips_unchanged_files(self, tmp_path, mock_progress):
         structure = {
-            "Sala1": FolderNode(subfolders={
-                "item": FolderNode(subfolders={
-                    "raw": FolderNode(files={
-                        "existing.jpg": FileMetadata(size=12, modified="2020-01-01T10:00:00Z", etag='"{A}"'),
-                    }),
-                }),
-            }),
+            "Sala1": FolderNode(
+                subfolders={
+                    "item": FolderNode(
+                        subfolders={
+                            "raw": FolderNode(
+                                files={
+                                    "existing.jpg": FileMetadata(
+                                        size=12, modified="2020-01-01T10:00:00Z", etag='"{A}"'
+                                    ),
+                                }
+                            ),
+                        }
+                    ),
+                }
+            ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
 
@@ -497,22 +534,28 @@ class TestDownloadAllFiles:
         mock_client = MagicMock()
         with patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress):
             with patch("piccione.download.from_sharepoint.console"):
-                download_all_files(
-                    mock_client, "https://test", structure, tmp_path, folder_paths
-                )
+                download_all_files(mock_client, "https://test", structure, tmp_path, folder_paths)
 
         assert existing.read_bytes() == b"already here"
 
     def test_continues_on_error(self, tmp_path, mock_progress):
         structure = {
-            "Sala1": FolderNode(subfolders={
-                "item": FolderNode(subfolders={
-                    "raw": FolderNode(files={
-                        "fail.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
-                        "success.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{B}"'),
-                    }),
-                }),
-            }),
+            "Sala1": FolderNode(
+                subfolders={
+                    "item": FolderNode(
+                        subfolders={
+                            "raw": FolderNode(
+                                files={
+                                    "fail.jpg": FileMetadata(size=100, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                                    "success.jpg": FileMetadata(
+                                        size=100, modified="2025-01-15T10:00:00Z", etag='"{B}"'
+                                    ),
+                                }
+                            ),
+                        }
+                    ),
+                }
+            ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
 
@@ -527,31 +570,34 @@ class TestDownloadAllFiles:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise Exception("Network error")
+                msg = "Network error"
+                raise RuntimeError(msg)
             return mock_response
 
-        with patch(
-            "piccione.download.from_sharepoint.stream_with_retry"
-        ) as mock_stream:
+        with patch("piccione.download.from_sharepoint.stream_with_retry") as mock_stream:
             mock_stream.side_effect = side_effect
             with patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress):
                 with patch("piccione.download.from_sharepoint.console"):
-                    download_all_files(
-                        MagicMock(), "https://test", structure, tmp_path, folder_paths
-                    )
+                    download_all_files(MagicMock(), "https://test", structure, tmp_path, folder_paths)
 
         success_file = tmp_path / "Sala1" / "item" / "raw" / "success.jpg"
         assert success_file.exists()
 
     def test_downloads_files(self, tmp_path, mock_progress):
         structure = {
-            "Sala1": FolderNode(subfolders={
-                "item": FolderNode(subfolders={
-                    "raw": FolderNode(files={
-                        "photo.jpg": FileMetadata(size=1024, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
-                    }),
-                }),
-            }),
+            "Sala1": FolderNode(
+                subfolders={
+                    "item": FolderNode(
+                        subfolders={
+                            "raw": FolderNode(
+                                files={
+                                    "photo.jpg": FileMetadata(size=1024, modified="2025-01-15T10:00:00Z", etag='"{A}"'),
+                                }
+                            ),
+                        }
+                    ),
+                }
+            ),
         }
         folder_paths = {"Sala1": "/docs/Sala1"}
 
@@ -560,15 +606,11 @@ class TestDownloadAllFiles:
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
 
-        with patch(
-            "piccione.download.from_sharepoint.stream_with_retry"
-        ) as mock_stream:
+        with patch("piccione.download.from_sharepoint.stream_with_retry") as mock_stream:
             mock_stream.return_value = mock_response
             with patch("piccione.download.from_sharepoint.Progress", return_value=mock_progress):
                 with patch("piccione.download.from_sharepoint.console"):
-                    download_all_files(
-                        MagicMock(), "https://test", structure, tmp_path, folder_paths
-                    )
+                    download_all_files(MagicMock(), "https://test", structure, tmp_path, folder_paths)
 
         downloaded_file = tmp_path / "Sala1" / "item" / "raw" / "photo.jpg"
         assert downloaded_file.exists()

@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 BASE_URL = "https://api.figshare.com/v2/account/articles"
 CHUNK_SIZE = 1048576
+HTTP_INTERNAL_SERVER_ERROR = 500
 
 
 def get_file_check_data(file_name):
@@ -39,7 +40,7 @@ def issue_request(method, url, token, data=None, binary=False):
         attempt += 1
         try:
             response = requests.request(method, url, headers=headers, data=data, timeout=(30, 300))
-            if response.status_code >= 500:
+            if response.status_code >= HTTP_INTERNAL_SERVER_ERROR:
                 print(f"[ERROR] Server error {response.status_code}: {response.text[:200]}")
                 wait = min(2 ** (attempt - 1), 60)
                 print(f"Retrying in {wait}s...")
@@ -68,18 +69,13 @@ def upload_parts(file_info, file_path, token):
     assert isinstance(result, dict)
     print(f"\nUploading {os.path.basename(file_path)}:")
 
-    total_size = sum(
-        part["endOffset"] - part["startOffset"] + 1 for part in result["parts"]
-    )
+    total_size = sum(part["endOffset"] - part["startOffset"] + 1 for part in result["parts"])
 
-    with open(file_path, "rb") as fin:
-        with tqdm(
-            total=total_size, unit="B", unit_scale=True, unit_divisor=1024
-        ) as pbar:
-            for part in result["parts"]:
-                chunk_size = part["endOffset"] - part["startOffset"] + 1
-                upload_part(file_info, fin, part, token)
-                pbar.update(chunk_size)
+    with open(file_path, "rb") as fin, tqdm(total=total_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar:
+        for part in result["parts"]:
+            chunk_size = part["endOffset"] - part["startOffset"] + 1
+            upload_part(file_info, fin, part, token)
+            pbar.update(chunk_size)
 
 
 def upload_part(file_info, stream, part, token):

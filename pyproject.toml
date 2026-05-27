@@ -40,6 +40,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=7.0.0",
     "reuse>=6.2.0",
+    "ruff>=0.15.14",
     "virtuoso-utilities>=1.8.3",
 ]
 
@@ -47,6 +48,44 @@ dev = [
 typeCheckingMode = "standard"
 venvPath = "."
 venv = ".venv"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",       # pydocstyle
+    "ANN",     # annotations (pyright handles this)
+    "ERA",     # eradicate
+    "T20",     # print (CLI tool)
+    "FBT",     # boolean trap
+    "TD",      # todo comments
+    "FIX",     # fixme comments
+    "S",       # bandit (false positives: md5 for checksums, test passwords, subprocess)
+    "INP",     # implicit namespace packages
+    "COM812",  # trailing comma (formatter conflict)
+    "CPY",     # copyright (REUSE handles this)
+    "DOC",     # docstring coverage
+    "PD",      # pandas
+    "DJ",      # django
+    "AIR",     # airflow
+    "NPY",     # numpy
+    "FAST",    # fastapi
+    "LOG",     # logging (uses print)
+    "TRY003",  # long exception messages
+    "PTH",     # pathlib (codebase uses os.path consistently, conversion is a separate task)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "ARG001",   # unused function arguments (fixtures for side effects)
+    "ARG002",   # unused method arguments (fixtures for side effects)
+    "ARG005",   # unused lambda arguments
+    "PLR2004",  # magic values in assertions
+    "SIM117",   # nested with statements (deeply nested mock.patch is more readable)
+]
 
 [build-system]
 requires = ["hatchling>=1.26"]

@@ -5,14 +5,15 @@
 import argparse
 import os
 
-from piccione.upload.cache_manager import CacheManager
 from sparqlite import SPARQLClient
 from tqdm import tqdm
 
+from piccione.upload.cache_manager import CacheManager
+
 
 def save_failed_query_file(filename, failed_file):
-    with open(failed_file, "a", encoding="utf8") as failed_file:
-        failed_file.write(f"{filename}\n")
+    with open(failed_file, "a", encoding="utf8") as f:
+        f.write(f"{filename}\n")
 
 
 def remove_stop_file(stop_file):
@@ -21,7 +22,7 @@ def remove_stop_file(stop_file):
         print(f"Existing stop file {stop_file} has been removed.")
 
 
-def upload_sparql_updates(
+def upload_sparql_updates(  # noqa: PLR0913
     endpoint,
     folder,
     failed_file="failed_queries.txt",
@@ -44,10 +45,7 @@ def upload_sparql_updates(
         )
 
     all_files = [f for f in os.listdir(folder) if f.endswith(".sparql")]
-    if cache_manager is not None:
-        files_to_process = [f for f in all_files if f not in cache_manager]
-    else:
-        files_to_process = all_files
+    files_to_process = [f for f in all_files if f not in cache_manager] if cache_manager is not None else all_files
 
     if not files_to_process:
         return
@@ -61,7 +59,7 @@ def upload_sparql_updates(
 
             file_path = os.path.join(folder, file)
 
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 query = f.read().strip()
 
             if not query:
@@ -73,15 +71,13 @@ def upload_sparql_updates(
                 client.update(query)
                 if cache_manager is not None:
                     cache_manager.add(file)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(f"Failed to execute {file}: {e}")
                 save_failed_query_file(file, failed_file)
 
 
 def main():  # pragma: no cover
-    parser = argparse.ArgumentParser(
-        description="Execute SPARQL update queries on a triple store."
-    )
+    parser = argparse.ArgumentParser(description="Execute SPARQL update queries on a triple store.")
     parser.add_argument("endpoint", type=str, help="Endpoint URL of the triple store")
     parser.add_argument(
         "folder",
@@ -94,9 +90,7 @@ def main():  # pragma: no cover
         default="failed_queries.txt",
         help="Path to failed queries file",
     )
-    parser.add_argument(
-        "--stop_file", type=str, default=".stop_upload", help="Path to stop file"
-    )
+    parser.add_argument("--stop_file", type=str, default=".stop_upload", help="Path to stop file")
     parser.add_argument("--redis_host", type=str, help="Redis host for caching")
     parser.add_argument("--redis_port", type=int, help="Redis port")
     parser.add_argument("--redis_db", type=int, help="Redis database number")

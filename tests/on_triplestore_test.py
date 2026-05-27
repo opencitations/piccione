@@ -6,10 +6,11 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-from tests.conftest import REDIS_DB, REDIS_PORT
+from sparqlite import SPARQLClient
+
 from piccione.upload.cache_manager import CacheManager
 from piccione.upload.on_triplestore import remove_stop_file, save_failed_query_file, upload_sparql_updates
-from sparqlite import SPARQLClient
+from tests.conftest import REDIS_DB, REDIS_PORT
 
 SPARQL_ENDPOINT = "http://localhost:28890/sparql"
 
@@ -51,7 +52,7 @@ class TestOnTriplestore:
         test_file = "failed_test.sparql"
         save_failed_query_file(test_file, failed_file)
 
-        with open(failed_file, "r") as f:
+        with open(failed_file) as f:
             content = f.read()
         assert content == "failed_test.sparql\n"
 
@@ -120,7 +121,7 @@ class TestOnTriplestore:
         assert "valid.sparql" in cache_manager
         assert "invalid.sparql" not in cache_manager
 
-        with open(failed_file, "r") as f:
+        with open(failed_file) as f:
             failed_content = f.read()
         assert failed_content == "invalid.sparql\n"
 

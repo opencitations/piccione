@@ -46,13 +46,18 @@ def virtuoso_container():
 def redis_container():
     subprocess.run(
         ["docker", "rm", "-f", REDIS_CONTAINER_NAME],
+        check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
     cmd = [
-        "docker", "run", "-d",
-        "--name", REDIS_CONTAINER_NAME,
-        "-p", f"{REDIS_PORT}:6379",
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        REDIS_CONTAINER_NAME,
+        "-p",
+        f"{REDIS_PORT}:6379",
         REDIS_IMAGE,
     ]
     subprocess.run(cmd, check=True, capture_output=True)
@@ -64,13 +69,18 @@ def redis_container():
 @pytest.fixture
 def clean_virtuoso(virtuoso_container):
     cleanup_cmd = [
-        "docker", "exec", virtuoso_container,
+        "docker",
+        "exec",
+        virtuoso_container,
         "/opt/virtuoso-opensource/bin/isql",
-        "-U", "dba", "-P", DBA_PASSWORD,
+        "-U",
+        "dba",
+        "-P",
+        DBA_PASSWORD,
         "exec=log_enable(3,1); RDF_GLOBAL_RESET();",
     ]
     subprocess.run(cleanup_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    yield virtuoso_container
+    return virtuoso_container
 
 
 @pytest.fixture

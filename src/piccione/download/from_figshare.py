@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # Copyright (C) 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
 # SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
@@ -36,7 +34,7 @@ def get_article_metadata(article_id):
     files_url = f"{BASE_URL}/articles/{article_id}/files"
     files_response = requests.get(files_url, params={"page_size": 1000})
     files_response.raise_for_status()
-    article_data['files'] = files_response.json()
+    article_data["files"] = files_response.json()
 
     return article_data
 
@@ -48,34 +46,29 @@ def download_file(download_url, output_path, expected_size, expected_md5=None):
 
     md5_hash = hashlib.md5()
 
-    with open(output_path, 'wb') as f:
-        with tqdm(total=expected_size, unit='B', unit_scale=True, unit_divisor=1024) as pbar:
-            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                f.write(chunk)
-                md5_hash.update(chunk)
-                pbar.update(len(chunk))
+    with open(output_path, "wb") as f, tqdm(total=expected_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar:
+        for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+            f.write(chunk)
+            md5_hash.update(chunk)
+            pbar.update(len(chunk))
 
     if expected_md5:
         actual_md5 = md5_hash.hexdigest()
         if actual_md5 != expected_md5:
-            raise ValueError(f"MD5 mismatch: expected {expected_md5}, got {actual_md5}")
+            msg = f"MD5 mismatch: expected {expected_md5}, got {actual_md5}"
+            raise ValueError(msg)
         print(f"  MD5 checksum verified: {actual_md5}")
 
 
 def main():  # pragma: no cover
-    parser = argparse.ArgumentParser(
-        description="Download files from a Figshare article"
-    )
+    parser = argparse.ArgumentParser(description="Download files from a Figshare article")
+    parser.add_argument("article_id", type=int, help="Figshare article ID")
     parser.add_argument(
-        "article_id",
-        type=int,
-        help="Figshare article ID"
-    )
-    parser.add_argument(
-        "-o", "--output-dir",
+        "-o",
+        "--output-dir",
         type=Path,
-        default=Path("."),
-        help="Output directory for downloaded files (default: current directory)"
+        default=Path(),
+        help="Output directory for downloaded files (default: current directory)",
     )
 
     args = parser.parse_args()
@@ -92,16 +85,16 @@ def main():  # pragma: no cover
 
     print(f"\nFound {len(files)} file(s) to download:")
     for f in files:
-        size_mb = f['size'] / (1024 * 1024)
+        size_mb = f["size"] / (1024 * 1024)
         print(f"  - {f['name']} ({size_mb:.2f} MB)")
 
     print(f"\nDownloading to: {args.output_dir.absolute()}\n")
 
     for file_info in files:
-        filename = file_info['name']
-        download_url = file_info['download_url']
-        size = file_info['size']
-        md5 = file_info.get('supplied_md5')
+        filename = file_info["name"]
+        download_url = file_info["download_url"]
+        size = file_info["size"]
+        md5 = file_info.get("supplied_md5")
 
         output_path = args.output_dir / filename
 

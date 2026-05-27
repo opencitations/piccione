@@ -8,7 +8,7 @@ from pathlib import Path
 
 import requests
 import yaml
-from rich.progress import Progress, BarColumn, DownloadColumn, TransferSpeedColumn, TimeRemainingColumn, TaskID
+from rich.progress import BarColumn, DownloadColumn, Progress, TaskID, TimeRemainingColumn, TransferSpeedColumn
 
 
 def get_headers(token: str, user_agent: str, content_type: str | None = None) -> dict[str, str]:
@@ -25,7 +25,7 @@ class ProgressFileWrapper:
     def __init__(self, file_path: str, progress: Progress, task_id: TaskID):
         self.file_path = file_path
         self.file_size = Path(file_path).stat().st_size
-        self.fp = open(file_path, "rb")
+        self.fp = open(file_path, "rb")  # noqa: SIM115
         self.progress = progress
         self.task_id = task_id
 
@@ -233,19 +233,25 @@ def build_inveniordm_payload(config: dict) -> dict:
             for d in config["additional_descriptions"]
         ]
 
-    for field in ("subjects", "languages", "dates", "related_identifiers",
-                   "rights", "contributors", "funding",
-                   "version", "locations", "identifiers"):
+    for field in (
+        "subjects",
+        "languages",
+        "dates",
+        "related_identifiers",
+        "rights",
+        "contributors",
+        "funding",
+        "version",
+        "locations",
+        "identifiers",
+    ):
         if field in config:
             metadata[field] = config[field]
 
     metadata["publisher"] = config.get("publisher", "Zenodo")
 
     if "references" in config:
-        metadata["references"] = [
-            {"reference": ref} if isinstance(ref, str) else ref
-            for ref in config["references"]
-        ]
+        metadata["references"] = [{"reference": ref} if isinstance(ref, str) else ref for ref in config["references"]]
 
     return {
         "access": config["access"],
@@ -285,12 +291,10 @@ def main(config_file: str, publish: bool = False) -> dict:
         submit_community_review(base_url, token, draft_id, community, user_agent)
 
     if publish:
-        published = publish_draft(base_url, token, draft_id, user_agent)
-        return published
-    else:
-        print(f"\nDraft ready for review: {base_url.replace('/api', '')}/uploads/{draft_id}")
-        print("Run with --publish to publish automatically")
-        return draft
+        return publish_draft(base_url, token, draft_id, user_agent)
+    print(f"\nDraft ready for review: {base_url.replace('/api', '')}/uploads/{draft_id}")
+    print("Run with --publish to publish automatically")
+    return draft
 
 
 if __name__ == "__main__":  # pragma: no cover
