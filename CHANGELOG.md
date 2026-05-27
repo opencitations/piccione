@@ -1,3 +1,11 @@
+## [3.1.2](https://github.com/opencitations/piccione/compare/v3.1.1...v3.1.2) (2026-05-27)
+
+
+### Bug Fixes
+
+* **zenodo:** guard Self import for Python 3.10 compatibility [release] ([2761424](https://github.com/opencitations/piccione/commit/27614249a4e6f8311de520404b3ba1665da91fd5))
+* **zenodo:** resolve community slug to UUID for review submission ([e84f89d](https://github.com/opencitations/piccione/commit/e84f89d7e0009c1b614fe002278a6d8164d6609d))
+
 <!--
 SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
 
